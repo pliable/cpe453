@@ -8,25 +8,43 @@ int main(int argc, char *argv[]) {
    char *executable, *curTime;
    FILE *logFile, *pidstatm, *pidstat;
 
-   if(argc != 4 && argc != 5) { 
-      printf("Usage: [-s] <executable> <interval> <logFileName>\n");
-      return -1;
-   }
-   /* -s in the command line arguements?  */
-   if(strcmp(argv[1], SYSTEM) == 0) {
-      checkSystemStats = 1;
-      interval = strtol(argv[INTERVAL + 1], NULL, BASE);
-      logFile = fopen(argv[LOGFILE + 1], "a");
-      executable = argv[EXECUTABLE + 1];
-   }
-   else {
-      interval = strtol(argv[INTERVAL], NULL, BASE);
-      logFile = fopen(argv[LOGFILE], "a");
-      executable = argv[EXECUTABLE];
-   }
-   if(interval == 0) {
-      printf("Interval must be a number > 0\n");
-      return -1;
+   int commPoint = 0, i;
+   char command[7][35], input[256], *token;
+
+   while(1) {
+      scanf("%s", input);
+      token = strtok(input, " ");
+      while(token != NULL) {
+         sprintf(command[commPoint], token);
+         commPoint = commPoint + 1;//this is not incrementing wts
+         if(commPoint > 6) {
+            printf("Too many arguments\n");
+            return -1;
+         }
+         token = strtok(NULL, " ");
+      }
+      commPoint = 0;
+      if(strcmp(command[0], "add") == 0) {
+         //put in all the add cases
+      } 
+      if(strcmp(command[0], "set") == 0) {
+         //put the 2 set cases
+      }
+      if(strcmp(command[0], "listactive") == 0) {
+         //do listactive stuff
+      }
+      if(strcmp(command[0], "listcompleted") == 0) {
+         //do listcompleted stuff
+      }
+      if(strcmp(command[0], "remove") == 0) {
+         //do remove stuff
+      }
+      if(strcmp(command[0], "kill") == 0) {
+         //do kill stuff
+      }
+      if(strcmp(command[0], "exit") == 0) {
+         //do exit stuff
+      }
    }
 
    pid = fork();
