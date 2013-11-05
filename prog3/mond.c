@@ -38,42 +38,51 @@ int main(int argc, char *argv[]) {
       commPoint = 0;
       if(strcmp(command[0], "add") == 0) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
+            int sysInterval = defaultInterval;
+            char *sysLogfile = defaultLogfile;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
                //strtol the next entry with error checking
+               //set sysInterval
             }
             if(strcmp(command[2], "-f") == 0) { /* file */
-               //open that shit
+               //set sysLogfile
             }
             if(strcmp(command[4], "-f") == 0) { /* file */
-               //open that shit
+               //set sysLogfile
             }
-            //error check for bad shit here
-            else { /* -s with no flags */
-               
-            }
+            //error check for bad shit here (no defaults and malformed commands)
+            /* launch thread to monitor system shit */
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
+            int pidInterval = defaultInterval;
+            char *pidLogfile = defaultLogfile;
             if(strcmp(command[3], "-i") == 0) { /* interval given */
                //strtol the next entry with error checking
+               //set pidInterval
             }
             if(strcmp(command[3], "-f") == 0) { /* file */
-               //open that shit
+               //set pidLogfile
             }
             if(strcmp(command[5], "-f") == 0) { /* file */
-               //open that shit
+               //set pidLogfile
             }
+            //error check for bad shit here (no defaults and malformed commands)
             /* launch thread to monitor that pid file */
          }
          if(strcmp(command[1], "-e") == 0) { /* new executable to run */
+            int execInterval = defaultInterval;
+            char *execLogfile = defaultLogfile;
             if(strcmp(command[3], "-i") == 0) { /* interval given */
                //strtol the next entry with error checking
+               //set execInterval
             }
             if(strcmp(command[3], "-f") == 0) { /* file */
-               //open that shit
+               //set execLogfile
             }
             if(strcmp(command[5], "-f") == 0) { /* file */
-               //open that shit
+               //set execLogfile
             }
+            //error check for bad shit here (no defaults and malformed commands)
             /* launch the new executable */
          }
          else {
@@ -92,6 +101,10 @@ int main(int argc, char *argv[]) {
          }
          if(strcmp(command[1], "logfile") == 0) {
             strcpy(defaultLogfile, command[2]);
+         }
+         else {
+            printf("Usage: set <interval numberInMicroseconds || logfile logfileName>\n");
+            return -1;
          }
       }
       if(strcmp(command[0], "listactive") == 0) {
