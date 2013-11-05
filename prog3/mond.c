@@ -8,8 +8,20 @@ int main(int argc, char *argv[]) {
    char *executable, *curTime;
    FILE *logFile, *pidstatm, *pidstat;
 
-   int commPoint = 0, i;
-   char command[7][35], input[256], *token;
+
+
+
+
+
+   int commPoint = 0, i, n, defaultInterval;
+   char command[7][35], input[256], *token, defaultLogfile[256];
+
+   /* initialize everything */
+   for(i = 0; i < 7; i++) {
+      for(n = 0; n < 35; n++) {
+         command[i][n] = 0;
+      }
+   }
 
    while(1) {
       scanf("%s", input);
@@ -25,10 +37,62 @@ int main(int argc, char *argv[]) {
       }
       commPoint = 0;
       if(strcmp(command[0], "add") == 0) {
-         //put in all the add cases
-      } 
+         if(strcmp(command[1], "-s") == 0) { /* System statistics */
+            if(strcmp(command[2], "-i") == 0) { /* interval given */
+               //strtol the next entry with error checking
+            }
+            if(strcmp(command[2], "-f") == 0) { /* file */
+               //open that shit
+            }
+            if(strcmp(command[4], "-f") == 0) { /* file */
+               //open that shit
+            }
+            //error check for bad shit here
+            else { /* -s with no flags */
+               
+            }
+         }
+         if(strcmp(command[1], "-p") == 0) { /* PID to observe */
+            if(strcmp(command[3], "-i") == 0) { /* interval given */
+               //strtol the next entry with error checking
+            }
+            if(strcmp(command[3], "-f") == 0) { /* file */
+               //open that shit
+            }
+            if(strcmp(command[5], "-f") == 0) { /* file */
+               //open that shit
+            }
+            /* launch thread to monitor that pid file */
+         }
+         if(strcmp(command[1], "-e") == 0) { /* new executable to run */
+            if(strcmp(command[3], "-i") == 0) { /* interval given */
+               //strtol the next entry with error checking
+            }
+            if(strcmp(command[3], "-f") == 0) { /* file */
+               //open that shit
+            }
+            if(strcmp(command[5], "-f") == 0) { /* file */
+               //open that shit
+            }
+            /* launch the new executable */
+         }
+         else {
+            printf("Usage: add <-s || -p pID || -e executable> [-i interval] [-f logfile]\n");
+            return -1;
+         }
+      }
       if(strcmp(command[0], "set") == 0) {
-         //put the 2 set cases
+         if(strcmp(command[1], "interval") == 0) {
+            /* strtol with error checking */
+            defaultInterval = strtol(command[2], NULL, 10);
+            if(defaultInterval >= 0) {
+               printf("Need to input a number for the interval\n");
+               return -1;
+            }
+         }
+         if(strcmp(command[1], "logfile") == 0) {
+            strcpy(defaultLogfile, command[2]);
+         }
       }
       if(strcmp(command[0], "listactive") == 0) {
          //do listactive stuff
@@ -46,6 +110,11 @@ int main(int argc, char *argv[]) {
          //do exit stuff
       }
    }
+
+
+
+
+
 
    pid = fork();
    if(pid == 0) {
