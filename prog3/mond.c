@@ -19,13 +19,14 @@ int main(int argc, char *argv[]) {
    /* initialize everything */
    for(i = 0; i < 7; i++) {
       for(n = 0; n < 35; n++) {
-         command[i][n] = 0;
+         command[i][n] = '\0';
       }
    }
 
    while(1) {
-      scanf("%s", input);
-      token = strtok(input, " ");
+      //scanf("%s", input);
+      fgets(input, 256, stdin);
+      token = strtok(input, " \n");
       while(token != NULL) {
          sprintf(command[commPoint], token);
          commPoint = commPoint + 1;//this is not incrementing wts
@@ -33,8 +34,9 @@ int main(int argc, char *argv[]) {
             printf("Too many arguments\n");
             return -1;
          }
-         token = strtok(NULL, " ");
+         token = strtok(NULL, " \n");
       }
+         // for(i = 0; i < 7; i++) printf("c[i] %s\n", command[i]);
       commPoint = 0;
       if(strcmp(command[0], "add") == 0) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
@@ -42,32 +44,58 @@ int main(int argc, char *argv[]) {
             char *sysLogfile = defaultLogfile;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
                //strtol the next entry with error checking
-               //set sysInterval
+               if((sysInterval = strtol(command[3], NULL, 10)) <= 0) {
+                  printf("Please put an actual number for the interval after '-i'.\n");
+                  continue;
+               }
             }
             if(strcmp(command[2], "-f") == 0) { /* file */
                //set sysLogfile
+               if(strlen(command[3]) == 0) {
+                  printf("Please include a log file to write to after '-f'.\n");
+                  continue;
+               }
+               sysLogfile = command[3];
             }
             if(strcmp(command[4], "-f") == 0) { /* file */
-               //set sysLogfile
+               if(strlen(command[5]) == 0) {
+                  printf("Please include a log file to write to after '-f'.\n");
+                  continue;
+               }
+               sysLogfile = command[5];
             }
-            //error check for bad shit here (no defaults and malformed commands)
             /* launch thread to monitor system shit */
+            continue;
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
-            int pidInterval = defaultInterval;
+            int pidInterval = defaultInterval, pid;
             char *pidLogfile = defaultLogfile;
+            if((pid = strtol(command[2], NULL, 10)) <= 0) {
+               printf("Please indicate a pid to monitor after the '-p'\n");
+               continue;
+            }
             if(strcmp(command[3], "-i") == 0) { /* interval given */
-               //strtol the next entry with error checking
-               //set pidInterval
+               if((pidInterval = strtol(command[4], NULL, 10)) <= 0) {
+                  printf("Please put an actual number for the interval after '-i'.\n");
+                  continue;
+               }
             }
             if(strcmp(command[3], "-f") == 0) { /* file */
-               //set pidLogfile
+               if(strlen(command[4]) == 0) {
+                  printf("Please include a log file to write to after '-f'.\n");
+                  continue;
+               }
+               pidLogfile = command[4];
             }
             if(strcmp(command[5], "-f") == 0) { /* file */
-               //set pidLogfile
+               if(strlen(command[6]) == 0) {
+                  printf("Please include a log file to write to\n");
+                  continue;
+               }
+               pidLogfile = command[6];
             }
-            //error check for bad shit here (no defaults and malformed commands)
             /* launch thread to monitor that pid file */
+            continue;
          }
          if(strcmp(command[1], "-e") == 0) { /* new executable to run */
             int execInterval = defaultInterval;
@@ -82,10 +110,10 @@ int main(int argc, char *argv[]) {
             if(strcmp(command[5], "-f") == 0) { /* file */
                //set execLogfile
             }
-            //error check for bad shit here (no defaults and malformed commands)
             /* launch the new executable */
+            continue;
          }
-         else {
+         else {//this else always getting triggered. wts
             printf("Usage: add <-s || -p pID || -e executable> [-i interval] [-f logfile]\n");
             return -1;
          }
