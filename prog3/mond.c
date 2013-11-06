@@ -16,15 +16,14 @@ int main(int argc, char *argv[]) {
    int commPoint = 0, i, n, defaultInterval;
    char command[7][35], input[256], *token, defaultLogfile[256];
 
-   /* initialize everything */
-   for(i = 0; i < 7; i++) {
-      for(n = 0; n < 35; n++) {
-         command[i][n] = '\0';
-      }
-   }
 
    while(1) {
-      //scanf("%s", input);
+      /* initialize everything */
+      for(i = 0; i < 7; i++) {
+         for(n = 0; n < 35; n++) {
+            command[i][n] = '\0';
+         }
+      }
       fgets(input, 256, stdin);
       token = strtok(input, " \n");
       while(token != NULL) {
@@ -43,14 +42,12 @@ int main(int argc, char *argv[]) {
             int sysInterval = defaultInterval;
             char *sysLogfile = defaultLogfile;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
-               //strtol the next entry with error checking
                if((sysInterval = strtol(command[3], NULL, 10)) <= 0) {
                   printf("Please put an actual number for the interval after '-i'.\n");
                   continue;
                }
             }
             if(strcmp(command[2], "-f") == 0) { /* file */
-               //set sysLogfile
                if(strlen(command[3]) == 0) {
                   printf("Please include a log file to write to after '-f'.\n");
                   continue;
@@ -64,7 +61,7 @@ int main(int argc, char *argv[]) {
                }
                sysLogfile = command[5];
             }
-            /* launch thread to monitor system shit */
+            /* launch thread to monitor system shit. Check defaults */
             continue;
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
@@ -94,23 +91,37 @@ int main(int argc, char *argv[]) {
                }
                pidLogfile = command[6];
             }
-            /* launch thread to monitor that pid file */
+            /* launch thread to monitor that pid file check defaults */
             continue;
          }
          if(strcmp(command[1], "-e") == 0) { /* new executable to run */
             int execInterval = defaultInterval;
             char *execLogfile = defaultLogfile;
+            if(strcmp(command[2], "-i") == 0 || strcmp(command[2], "-f") == 0) {
+               printf("Please include an executable to run after the '-e'\n");
+               continue;
+            }
             if(strcmp(command[3], "-i") == 0) { /* interval given */
-               //strtol the next entry with error checking
-               //set execInterval
+               if((execInterval = strtol(command[4], NULL, 10)) <= 0) {
+                  printf("Please put an actual number for the interval after '-i'.\n");
+                  continue;
+               }
             }
             if(strcmp(command[3], "-f") == 0) { /* file */
-               //set execLogfile
+               if(strlen(command[4]) == 0) {
+                  printf("Please include a log file to write to after '-f'.\n");
+                  continue;
+               }
+               execLogfile = command[4];
             }
             if(strcmp(command[5], "-f") == 0) { /* file */
-               //set execLogfile
+               if(strlen(command[6]) == 0) {
+                  printf("Please include a log file to write to after '-f'.\n");
+                  continue;
+               }
+               execLogfile = command[6];
             }
-            /* launch the new executable */
+            /* launch the new executable. check defautls */
             continue;
          }
          else {//this else always getting triggered. wts
@@ -120,15 +131,19 @@ int main(int argc, char *argv[]) {
       }
       if(strcmp(command[0], "set") == 0) {
          if(strcmp(command[1], "interval") == 0) {
-            /* strtol with error checking */
             defaultInterval = strtol(command[2], NULL, 10);
-            if(defaultInterval >= 0) {
+            if(defaultInterval <= 0) {
                printf("Need to input a number for the interval\n");
-               return -1;
             }
+            continue;
          }
          if(strcmp(command[1], "logfile") == 0) {
+            if(strlen(command[2]) == 0) {
+               printf("Please include a log file after 'logfile'.\n");
+               continue;
+            }
             strcpy(defaultLogfile, command[2]);
+            continue;
          }
          else {
             printf("Usage: set <interval numberInMicroseconds || logfile logfileName>\n");
@@ -149,6 +164,10 @@ int main(int argc, char *argv[]) {
       }
       if(strcmp(command[0], "exit") == 0) {
          //do exit stuff
+      }
+      else {
+         printf("Not a valid command\n");
+         return -1;
       }
    }
 
