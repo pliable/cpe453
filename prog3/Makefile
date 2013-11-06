@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-all: mond example
+all: mond
 
 mond: mond.c
 	$(CC) $(CFLAGS) -o mond mond.c
