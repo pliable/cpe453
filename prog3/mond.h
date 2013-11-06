@@ -22,3 +22,12 @@ void getDiskstatsData(FILE *logfile);
 void getLoadavgData(FILE *logfile);
 void getPidStatData(FILE **logfile, FILE **pidstat);
 void getPidStatmData(FILE **logfile, FILE **pidstatm);
+
+typedef struct stuff {
+   /* Need thread ID of pthread monitoring a pid */
+   int monitorThreadID; 
+   char pidBeingMonitored[256]; /* "system", "command", or pid */
+   time_t whenStarted;
+   int monitorInterval;
+   char *logfile;
+} monitor_data;

@@ -1,5 +1,7 @@
 #include "mond.h"
 
+/* Need global array of pthreads */
+/* Array of structs to hold the data listed in 4. */
 int main(int argc, char *argv[]) {
    int checkSystemStats = 0, interval = 0, status;
    char procStat[25], procStatm[25];
@@ -13,7 +15,7 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval;
+   int commPoint = 0, i, n, defaultInterval, monitorThreadID = 1;
    char command[7][35], input[256], *token, defaultLogfile[256];
 
 
@@ -429,6 +431,13 @@ void getLoadavgData(FILE *logfile) {
    fprintf(logfile, " 15min ");
    fprintf(logfile, "%s", strtok(NULL, " "));
    fclose(loadavg);
+}
+
+void pidhelper (int pid, int interval) { 
+      //wait for the pid it is being monitored to end
+      //open the proc files
+      //call pidstatdata and pidstatmdata
+      //sleep
 }
 
 void getPidStatData(FILE **logfile, FILE **pidstat) {
