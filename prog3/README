@@ -14,4 +14,8 @@ to do still:
   create pthread
   pthread -(cleanup || cancel)
   pick which mutex thang todo
-  fuck...dammit, something here too
+    attain lock
+    open logfile and proc shit
+    write statistics
+    close everything that was opened
+    release lock
