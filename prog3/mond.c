@@ -331,7 +331,7 @@ void * systemMonitorHelper(void *ptr) {
    time(&t);
    ct = ctime(&t);
    ct[strlen(ct) - 1] = ']';
-   fprintf(log, "[%s ", ct);//segfault here
+   fprintf(log, "[%s ", ct);
    fprintf(log, "System  ");
 
    getStatData(log);
