@@ -1,0 +1,41 @@
+// Add system monitor
+add -s
+add -s -i <INT:interval> { -f <STRING:filename> }
+add -s -f <STRING:filename> { -i <INT:interval> }
+
+// Add process monitor to the active process with pid
+add -p <INT:pid>
+add -p <INT:pid> -i <INT:interval> { -f <STRING:filename> }
+add -p <INT:pid> -f <STRING:filename> { -i <INT:interval> }
+
+// Exec executable and add a process monitor
+add -e <STRING:executable>
+add -e <STRING:executable> -i <INT:interval> { -f <STRING:filename> }
+add -e <STRING:executable> -f <STRING:filename> { -i <INT:interval> }
+
+// Set the default interval (in units of microseconds)
+set interval <INT:interval>
+
+// Set the default log file
+set logfile <STRING:logFileName>
+
+// Show information about active monitors
+listactive
+
+// Show monitors which have been stopped (both manually or from exited process)
+listcompleted
+
+// Remove the system monitor thread
+remove -s
+
+// Remove a specific process monitor thread
+remove -t <INT:threadID>
+
+// Terminate all threads associated with the process processID, then terminate the process
+kill <INT:processID>
+
+// List all available commands with a substring 'filter' in it.
+help { <STRING:filter> }
+
+// Exit the application (display warning if active monitors exist)
+exit

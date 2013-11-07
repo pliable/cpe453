@@ -1,0 +1,17 @@
+# Things I had to do to get this Makefile to work
+# make unix (uses default Makefile to generate libcparser.a)
+# cp src/cparser_priv.h .   (copy to root dir)
+# cp src/cparser_token.h .  (copy to root dir)
+
+CLISCRIPT=./scripts/mk_parser.py
+CLIFILE=cpe453prog3.cli
+INFILES=cparser_tree.c cpe453prog3_cli_cmd.c
+
+all: cli commandInterpreter
+cli:
+	$(CLISCRIPT) $(CLIFILE) 
+commandInterpreter: 
+	gcc $(INFILES) -L./build/unix/lib/ -lcparser -I./inc/ -o $@
+
+clean:
+	rm commandInterpreter

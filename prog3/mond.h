@@ -8,6 +8,8 @@
 #define LOADAVG "/proc/loadavg"
 #define DISKSTATS "/proc/diskstats"
 
+#include <stdint.h>
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -15,6 +17,11 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdlib.h>
+#include "cparser.h"
+#include "cparser_token.h"
+#include "cparser_tree.h"
+
+#define PROMPT "> "
 
 void getStatData(FILE *logfile);
 void getMeminfoData(FILE *logfile);
