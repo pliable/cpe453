@@ -1,7 +1,5 @@
 #include "mond.h"
 
-/* Need global array of pthreads */
-/* Array of structs to hold the data listed in 4. */
 int main(int argc, char *argv[]) {
    /*
 
@@ -50,7 +48,7 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1;
+   int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1, currentPidMon = 0;
    char command[7][35], input[256], *token, defaultLogfile[256];
    monitor_data pids[10];/* 10 for pid/executable monitoring */
 
@@ -316,13 +314,34 @@ int main(int argc, char *argv[]) {
 }
 
 void * systemMonitorHelper(void *ptr) {
+   FILE *log;
+   time_t t;
+   char *ct;
    monitor_data *sys = (monitor_data *) ptr;
-   /*printf("%02x\n", (unsigned)sys->monitorThreadID);
-   printf("%s\n", sys->pidBeingMonitored);
-   printf("%s\n", ctime(&sys->whenStarted));
-   printf("%d\n", sys->monitorInterval);
-   printf("%s\n", sys->logfile);*/
+   //printf("%02x\n", (unsigned)sys->monitorThreadID);
+   //printf("%s\n", sys->pidBeingMonitored);
+   //printf("%s\n", ctime(&sys->whenStarted));
+   //printf("%d\n", sys->monitorInterval);
+   //printf("%s\n", sys->logfile);
+   
+   //sys monitor always runs until exit  (put a while(1) here)
 
+   //acquire lock
+   log = fopen(sys->logfile, "w");
+   time(&t);
+   ct = ctime(&t);
+   ct[strlen(ct) - 1] = ']';
+   fprintf(log, "[%s ", ct);//segfault here
+   fprintf(log, "System  ");
+
+   getStatData(log);
+   getMeminfoData(log);
+   getLoadavgData(log);
+   getDiskstatsData(log);
+   fprintf(log, "\n");
+   fclose(log);
+   usleep(sys->monitorInterval);
+   //release lock
 }
 
 void getStatData(FILE *logfile) {
