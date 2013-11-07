@@ -64,6 +64,13 @@ int main(int argc, char *argv[]) {
    commandThread.monitorInterval = 0;
    strcpy(commandThread.logfile ,"N/A");
 
+   /* write and set cleanup functions for everythign */
+
+   /* initialization */
+   for(i = 0; i < 256; i++) {
+      defaultLogfile[i] = '\0';
+   }
+
 
    while(1) {
       /* initialize everything */
@@ -123,7 +130,7 @@ int main(int argc, char *argv[]) {
             /* launch thread to monitor system shit. */
             system.monitorInterval = sysInterval;
             strcpy(system.logfile, sysLogfile);
-            time(&system.whenStarted);
+            time(&system.whenStarted); /* get rid of extra \n */
             pthread_create(&system.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
             continue;
          }
@@ -310,6 +317,12 @@ int main(int argc, char *argv[]) {
 
 void * systemMonitorHelper(void *ptr) {
    monitor_data *sys = (monitor_data *) ptr;
+   /*printf("%02x\n", (unsigned)sys->monitorThreadID);
+   printf("%s\n", sys->pidBeingMonitored);
+   printf("%s\n", ctime(&sys->whenStarted));
+   printf("%d\n", sys->monitorInterval);
+   printf("%s\n", sys->logfile);*/
+
 }
 
 void getStatData(FILE *logfile) {
