@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval, monitorThreadID = 1;
+   int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1;
    char command[7][35], input[256], *token, defaultLogfile[256];
-
+   monitor_data d[11];/* 10 for pid/executable monitoring, 1 for system */
 
    while(1) {
       /* initialize everything */
@@ -100,7 +100,17 @@ int main(int argc, char *argv[]) {
                }
                sysLogfile = command[5];
             }
-            /* launch thread to monitor system shit. Check defaults */
+            /* Check defaults to make sure values were given if no defaults yet */
+            if(sysInterval <= 0) {
+               printf("A default interval was not set, supply a value for an interval\n");
+               continue;
+            }
+            if(strlen(sysLogfile) <= 0) {
+               printf("A default logfile was not set, supply a value for a logfile\n");
+               continue;
+            }
+            /* launch thread to monitor system shit. */
+            
             continue;
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
@@ -130,7 +140,16 @@ int main(int argc, char *argv[]) {
                }
                pidLogfile = command[6];
             }
-            /* launch thread to monitor that pid file check defaults */
+            /* Check defaults to make sure values were given if no defaults yet */
+            if(pidInterval <= 0) {
+               printf("A default interval was not set, supply a value for an interval\n");
+               continue;
+            }
+            if(strlen(pidLogfile) <= 0) {
+               printf("A default logfile was not set, supply a value for a logfile\n");
+               continue;
+            }
+            /* launch thread to monitor that pid file */
             continue;
          }
          if(strcmp(command[1], "-e") == 0) { /* new executable to run */
@@ -160,7 +179,16 @@ int main(int argc, char *argv[]) {
                }
                execLogfile = command[6];
             }
-            /* launch the new executable. check defautls */
+            /* Check defaults to make sure values were given if no defaults yet */
+            if(execInterval <= 0) {
+               printf("A default interval was not set, supply a value for an interval\n");
+               continue;
+            }
+            if(strlen(execLogfile) <= 0) {
+               printf("A default logfile was not set, supply a value for a logfile\n");
+               continue;
+            }
+            /* launch the new executable */
             continue;
          }
          else {//this else always getting triggered. wts
@@ -561,7 +589,7 @@ void getPidStatmData(FILE **logfile, FILE **pidstatm) {
 //                                                can be null!
 
 // Add system monitor using defaults
-cparser_result_t cparser_cmd_add__s(cparser_context_t *context) {
+/*cparser_result_t cparser_cmd_add__s(cparser_context_t *context) {
   printf("Add system monitor using defaults\n");
 }
 
@@ -668,12 +696,13 @@ cparser_result_t cparser_cmd_kill_processID(cparser_context_t *context,
 cparser_result_t cparser_cmd_help_filter (cparser_context_t *context, char **filter) {
   assert(context);
   return cparser_help_cmd(context->parser, filter ? *filter : NULL);
-}
+} 
+*/
 
 /**
  * Exit the parser test program.
  */
-cparser_result_t cparser_cmd_exit (cparser_context_t *context) {
+/*cparser_result_t cparser_cmd_exit (cparser_context_t *context) {
   assert(context);
   return cparser_quit(context->parser);
-}
+}*/
