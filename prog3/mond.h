@@ -16,12 +16,22 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <pthread.h>
 #include <stdlib.h>
-#include "cparser.h"
-#include "cparser_token.h"
-#include "cparser_tree.h"
+//#include "cparser.h"
+//#include "cparser_token.h"
+//#include "cparser_tree.h"
 
 #define PROMPT "> "
+
+typedef struct stuff {
+   /* Need thread ID of pthread monitoring a pid */
+   pthread_t monitorThreadID; 
+   char pidBeingMonitored[256]; /* "system", "command", or pid */
+   time_t whenStarted;
+   int monitorInterval;
+   char logfile[256];
+} monitor_data;
 
 void getStatData(FILE *logfile);
 void getMeminfoData(FILE *logfile);
@@ -29,12 +39,5 @@ void getDiskstatsData(FILE *logfile);
 void getLoadavgData(FILE *logfile);
 void getPidStatData(FILE **logfile, FILE **pidstat);
 void getPidStatmData(FILE **logfile, FILE **pidstatm);
+void * systemMonitorHelper(void *sys);
 
-typedef struct stuff {
-   /* Need thread ID of pthread monitoring a pid */
-   int monitorThreadID; 
-   char pidBeingMonitored[256]; /* "system", "command", or pid */
-   time_t whenStarted;
-   int monitorInterval;
-   char *logfile;
-} monitor_data;

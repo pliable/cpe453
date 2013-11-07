@@ -52,7 +52,18 @@ int main(int argc, char *argv[]) {
 
    int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1;
    char command[7][35], input[256], *token, defaultLogfile[256];
-   monitor_data d[11];/* 10 for pid/executable monitoring, 1 for system */
+   monitor_data pids[10];/* 10 for pid/executable monitoring */
+
+   monitor_data system; /* System monitor thread information */
+   strcpy(system.pidBeingMonitored, "system");
+
+   monitor_data commandThread; /* "Data" for command thread */
+   commandThread.monitorThreadID = 0;
+   strcpy(commandThread.pidBeingMonitored, "command");
+   time(&commandThread.whenStarted);
+   commandThread.monitorInterval = 0;
+   strcpy(commandThread.logfile ,"N/A");
+
 
    while(1) {
       /* initialize everything */
@@ -110,7 +121,10 @@ int main(int argc, char *argv[]) {
                continue;
             }
             /* launch thread to monitor system shit. */
-            
+            system.monitorInterval = sysInterval;
+            strcpy(system.logfile, sysLogfile);
+            time(&system.whenStarted);
+            pthread_create(&system.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
             continue;
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
@@ -292,6 +306,10 @@ int main(int argc, char *argv[]) {
    fclose(logFile);
 
    return 0;
+}
+
+void * systemMonitorHelper(void *ptr) {
+   monitor_data *sys = (monitor_data *) ptr;
 }
 
 void getStatData(FILE *logfile) {
