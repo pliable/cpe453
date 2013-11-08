@@ -7,6 +7,7 @@
 #define MEMINFO "/proc/meminfo"
 #define LOADAVG "/proc/loadavg"
 #define DISKSTATS "/proc/diskstats"
+#define MAX_PIDS 10
 
 #include <stdint.h>
 #include <assert.h>
@@ -18,12 +19,14 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <errno.h>
 
 typedef struct {
    /* Need thread ID of pthread monitoring a pid */
    pthread_t monitorThreadID; 
    char pidBeingMonitored[256]; /* "system", "command", or pid */
    time_t whenStarted;
+   time_t whenFinished;
    int monitorInterval;
    char logfile[256];
 } monitor_data;

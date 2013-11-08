@@ -15,11 +15,17 @@ int main(int argc, char *argv[]) {
 
 
    int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1, currentPidMon = 0;
+   pthread_t tid;
+   void *ret_val;
    char command[7][35], input[256], *token, defaultLogfile[256];
-   monitor_data pids[10];/* 10 for pid/executable monitoring */
+   monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
+
+   /******************* SYSTEM THREAD ***************************/
 
    monitor_data system; /* System monitor thread information */
    strcpy(system.pidBeingMonitored, "system");
+
+   /****************** COMMAND THREAD **************************/
 
    monitor_data commandThread; /* "Data" for command thread */
    commandThread.monitorThreadID = 0;
@@ -46,6 +52,7 @@ int main(int argc, char *argv[]) {
       fgets(input, 256, stdin);
       token = strtok(input, " \n");
       while(token != NULL) {
+         //This sprintf might break
          sprintf(command[commPoint], token);
          commPoint++;//this is not incrementing wts
          //schoo note: changed above to commPoint++ to see if that
@@ -203,13 +210,66 @@ int main(int argc, char *argv[]) {
          }
       }
       if(strcmp(command[0], "listactive") == 0) {
-         //do listactive stuff
+         for(i = 0; i < MAX_PIDS; i++) {
+            if(pids[i].monitorThreadID) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
+                       "Monitor Interval: %d8 | Log File: %s\n", pids[i].monitorThreadID,
+                       pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted), pids[i].monitorInterval,
+                       pids[i].logfile);
+            } else {
+               break;
+            }
+            continue;
+         }
       }
       if(strcmp(command[0], "listcompleted") == 0) {
-         //do listcompleted stuff
+         for(i = 0; i < MAX_PIDS; i++) {
+            if(pids[i].monitorThreadID) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
+                     "Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       pids[i].monitorThreadID, pids[i].pidBeingMonitored,
+                       ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
+                       pids[i].monitorInterval, pids[i].logfile);
+            } else {
+               break;
+            }
+            continue;
+         }
       }
       if(strcmp(command[0], "remove") == 0) {
-         //do remove stuff
+         int status;
+         /* filling out when finished */
+         time(&system.whenFinished);
+
+         if(strcmp(command[1], "-s") == 0) {
+            if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
+               fprintf(stderr, "No thread could be found\n");
+               continue;
+            }
+
+            if( (status = pthread_join(system.monitorThreadID, &ret_val)) != 0) {
+               switch(status) {
+                  case EDEADLK:
+                     fprintf(stderr, "Deadlock detected\n");
+                     break;
+                  case EINVAL:
+                     fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                     break;
+                  case ESRCH:
+                     fprintf(stderr, "No thread could be found\n");
+                     break;
+               }
+               continue;
+            }
+         }
+
+         if(strcmp(command[1], "-t") == 0) {
+            if((tid = strtol(command[2], NULL, 10)) <= 0) {
+               printf("Please indicate a tid to monitor after the '-t'\n");
+               continue;
+            }
+
+         }
       }
       if(strcmp(command[0], "kill") == 0) {
          //do kill stuff
@@ -279,7 +339,7 @@ int main(int argc, char *argv[]) {
    return 0;
 }
 
-void * systemMonitorHelper(void *ptr) {
+void *systemMonitorHelper(void *ptr) {
    FILE *log;
    time_t t;
    char *ct;
