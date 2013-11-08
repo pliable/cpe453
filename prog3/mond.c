@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1, currentPidMon = 0;
+   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    pthread_t tid;
    void *ret_val;
@@ -111,10 +111,16 @@ int main(int argc, char *argv[]) {
                printf("A default logfile was not set, supply a value for a logfile\n");
                continue;
             }
+            if(system.shorthandThreadID != 0) {
+               printf("There is already a thread monitoring system statistics.\n");
+               continue;
+            }
 
             /* launch thread to monitor system shit. */
             system.monitorInterval = sysInterval;
             strcpy(system.logfile, sysLogfile);
+            system.shorthandThreadID = shorthandMonitorThreadID;
+            shorthandMonitorThreadID++;
             time(&system.whenStarted); /* get rid of extra \n */
             pthread_create(&system.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
 
