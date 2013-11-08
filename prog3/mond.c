@@ -17,10 +17,16 @@ int main(int argc, char *argv[]) {
 
 
    int commPoint = 0, i, n, defaultInterval = -1, monitorThreadID = 1, currentPidMon = 0;
+   /* for printing purposes, remember that pthread_t is an unsigned long int */
    pthread_t tid;
    void *ret_val;
-   char command[7][35], input[256], *token, defaultLogfile[256];
+   char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
    monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
+
+   /* initializing monitorThreadID for future checking purposes */
+   for(i = 0; i < MAX_PIDS; i++) {
+      pids[i].monitorThreadID = 0;
+   }
 
    /******************* SYSTEM THREAD ***************************/
 
@@ -39,7 +45,7 @@ int main(int argc, char *argv[]) {
    /* write and set cleanup functions for everythign */
 
    /* initialization */
-   for(i = 0; i < 256; i++) {
+   for(i = 0; i < BUFFER_SIZE; i++) {
       defaultLogfile[i] = '\0';
    }
 
@@ -51,7 +57,7 @@ int main(int argc, char *argv[]) {
             command[i][n] = '\0';
          }
       }
-      fgets(input, 256, stdin);
+      fgets(input, BUFFER_SIZE, stdin);
       token = strtok(input, " \n");
       while(token != NULL) {
          //This sprintf might break
@@ -146,6 +152,7 @@ int main(int argc, char *argv[]) {
             /* launch thread to monitor that pid file */
             continue;
          }
+
          if(strcmp(command[1], "-e") == 0) { /* new executable to run */
             int execInterval = defaultInterval;
             char *execLogfile = defaultLogfile;
@@ -190,6 +197,7 @@ int main(int argc, char *argv[]) {
             return -1;
          }
       }
+
       if(strcmp(command[0], "set") == 0) {
          if(strcmp(command[1], "interval") == 0) {
             defaultInterval = strtol(command[2], NULL, 10);
@@ -211,9 +219,10 @@ int main(int argc, char *argv[]) {
             return -1;
          }
       }
+
       if(strcmp(command[0], "listactive") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID) {
+            if(pids[i].monitorThreadID != 0) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
                        "Monitor Interval: %d8 | Log File: %s\n", pids[i].monitorThreadID,
                        pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted), pids[i].monitorInterval,
@@ -224,9 +233,10 @@ int main(int argc, char *argv[]) {
             continue;
          }
       }
+
       if(strcmp(command[0], "listcompleted") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID && pids[i].whenFinished) {
+            if(pids[i].monitorThreadID != 0 && pids[i].whenFinished) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
                      "Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
                        pids[i].monitorThreadID, pids[i].pidBeingMonitored,
@@ -238,6 +248,7 @@ int main(int argc, char *argv[]) {
             continue;
          }
       }
+
       if(strcmp(command[0], "remove") == 0) {
          int status;
          /* filling out when finished */
