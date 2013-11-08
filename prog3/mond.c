@@ -2,7 +2,6 @@
 
 
 pthread_mutex_t m[11];
-pthread_mutex_t asdf = PTHREAD_MUTEX_INITIALIZER;
 int main(int argc, char *argv[]) {
 
    int checkSystemStats = 0, interval = 0, status;
