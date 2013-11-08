@@ -1,5 +1,7 @@
 #include "mond.h"
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int main(int argc, char *argv[]) {
 
    int checkSystemStats = 0, interval = 0, status;
@@ -224,7 +226,7 @@ int main(int argc, char *argv[]) {
       }
       if(strcmp(command[0], "listcompleted") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID) {
+            if(pids[i].monitorThreadID && pids[i].whenFinished) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
                      "Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
                        pids[i].monitorThreadID, pids[i].pidBeingMonitored,
@@ -242,11 +244,13 @@ int main(int argc, char *argv[]) {
          time(&system.whenFinished);
 
          if(strcmp(command[1], "-s") == 0) {
+            /* issue cancel */
             if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
                continue;
             }
 
+            /* wait for thread to terminate */
             if( (status = pthread_join(system.monitorThreadID, &ret_val)) != 0) {
                switch(status) {
                   case EDEADLK:
@@ -265,7 +269,27 @@ int main(int argc, char *argv[]) {
 
          if(strcmp(command[1], "-t") == 0) {
             if((tid = strtol(command[2], NULL, 10)) <= 0) {
-               printf("Please indicate a tid to monitor after the '-t'\n");
+               printf("Please indicate a tid to remove after the '-t'\n");
+               continue;
+            }
+
+            if( (status = pthread_cancel(tid)) == ESRCH) {
+               fprintf(stderr, "No thread could be found\n");
+            }
+
+            /* wait for thread to terminate */
+            if( (status = pthread_join(tid, &ret_val)) != 0) {
+               switch(status) {
+                  case EDEADLK:
+                     fprintf(stderr, "Deadlock detected\n");
+                     break;
+                  case EINVAL:
+                     fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                     break;
+                  case ESRCH:
+                     fprintf(stderr, "No thread could be found\n");
+                     break;
+               }
                continue;
             }
 
@@ -275,7 +299,63 @@ int main(int argc, char *argv[]) {
          //do kill stuff
       }
       if(strcmp(command[0], "exit") == 0) {
-         //do exit stuff
+         char ans;
+         for(i = 0; i < MAX_PIDS; i++) {
+            if(pids[i].monitorThreadID) {
+               printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
+               scanf("%c", &ans);
+
+               if(ans == 'y') {
+                  /* closing system logfile */
+                  //fclose(system.logfile);
+                  /* closing command logfile */
+                  //fclose(commandThread.logfile);
+
+                  for(i = 0; i < MAX_PIDS; i++) {
+                     /* ignoring ret vals since closing anyway */
+                     //fclose(pids[i].logfile);
+                  }
+
+                  /* closing threads */
+
+                  pthread_cancel(system.monitorThreadID);
+                  /*check here too maybe*/
+                  pthread_join(system.monitorThreadID, &ret_val);
+                  
+                  pthread_cancel(commandThread.monitorThreadID);
+                  /*check here too maybe*/
+                  pthread_join(commandThread.monitorThreadID, &ret_val);
+
+                  for(i = 0; i < MAX_PIDS; i++) {
+                     /*intentionally ignoring ret value here because we 
+                       want all thread to be killed anyway */
+                     pthread_cancel(pids[i].monitorThreadID);
+                  }
+
+                  /* waiting for closed threads */
+
+                  for(i = 0; i < MAX_PIDS; i++) {
+                     if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
+                        switch(status) {
+                           case EDEADLK:
+                              fprintf(stderr, "Deadlock detected\n");
+                              break;
+                           case EINVAL:
+                              fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                              break;
+                           case ESRCH:
+                              fprintf(stderr, "No thread could be found\n");
+                              break;
+                        }
+                     }
+                  }
+
+                  exit(EXIT_SUCCESS);
+               } else {
+                  continue;
+               }
+            }
+         }
       }
       else {
          printf("Not a valid command\n");
@@ -353,6 +433,7 @@ void *systemMonitorHelper(void *ptr) {
    //sys monitor always runs until exit  (put a while(1) here)
 
    //acquire lock
+   pthread_mutex_lock(&mutex);
    log = fopen(sys->logfile, "w");
    time(&t);
    ct = ctime(&t);
@@ -368,6 +449,7 @@ void *systemMonitorHelper(void *ptr) {
    fclose(log);
    usleep(sys->monitorInterval);
    //release lock
+   pthread_mutex_unlock(&mutex);
 }
 
 void getStatData(FILE *logfile) {
