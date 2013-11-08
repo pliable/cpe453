@@ -228,10 +228,9 @@ int main(int argc, char *argv[]) {
       if(strcmp(command[0], "listactive") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].monitorThreadID != 0) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
-                       "Monitor Interval: %d8 | Log File: %s\n", pids[i].monitorThreadID,
-                       pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted), pids[i].monitorInterval,
-                       pids[i].logfile);
+               printf("Monitoring Thread ID: %u8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       pids[i].monitorThreadID, pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted),
+                       pids[i].monitorInterval, pids[i].logfile);
             } else {
                break;
             }
@@ -242,8 +241,7 @@ int main(int argc, char *argv[]) {
       if(strcmp(command[0], "listcompleted") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].monitorThreadID != 0 && pids[i].whenFinished) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | "
-                     "Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+               printf("Monitoring Thread ID: %u8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
                        pids[i].monitorThreadID, pids[i].pidBeingMonitored,
                        ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
                        pids[i].monitorInterval, pids[i].logfile);
@@ -289,6 +287,7 @@ int main(int argc, char *argv[]) {
                continue;
             }
 
+            /* cancelling thread */
             if( (status = pthread_cancel(tid)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
             }
@@ -308,12 +307,13 @@ int main(int argc, char *argv[]) {
                }
                continue;
             }
-
          }
       }
+      
       if(strcmp(command[0], "kill") == 0) {
          //do kill stuff
       }
+
       if(strcmp(command[0], "exit") == 0) {
          char ans;
          for(i = 0; i < MAX_PIDS; i++) {
@@ -323,13 +323,13 @@ int main(int argc, char *argv[]) {
 
                if(ans == 'y') {
                   /* closing system logfile */
-                  //fclose(system.logfile);
+                  fclose(system.logFP);
                   /* closing command logfile */
-                  //fclose(commandThread.logfile);
+                  fclose(commandThread.logFP);
 
                   for(i = 0; i < MAX_PIDS; i++) {
                      /* ignoring ret vals since closing anyway */
-                     //fclose(pids[i].logfile);
+                     fclose(pids[i].logFP);
                   }
 
                   /* closing threads */
