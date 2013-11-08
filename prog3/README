@@ -11,7 +11,6 @@ CLI parsing:
 slap mutex locks/releases before all writes
 
 to do still:
-  create pthread
   pthread -(cleanup || cancel)
   pick which mutex thang todo
     attain lock
