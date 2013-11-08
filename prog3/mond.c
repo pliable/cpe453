@@ -111,11 +111,13 @@ int main(int argc, char *argv[]) {
                printf("A default logfile was not set, supply a value for a logfile\n");
                continue;
             }
+
             /* launch thread to monitor system shit. */
             system.monitorInterval = sysInterval;
             strcpy(system.logfile, sysLogfile);
             time(&system.whenStarted); /* get rid of extra \n */
             pthread_create(&system.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
+
             continue;
          }
          if(strcmp(command[1], "-p") == 0) { /* PID to observe */
@@ -450,19 +452,19 @@ void *systemMonitorHelper(void *ptr) {
 
    //acquire lock
   // pthread_mutex_lock(&mutex);
-   log = fopen(sys->logfile, "w");
+   sys->logFP = fopen(sys->logfile, "w");
    time(&t);
    ct = ctime(&t);
    ct[strlen(ct) - 1] = ']';
-   fprintf(log, "[%s ", ct);
-   fprintf(log, "System  ");
+   fprintf(sys->logFP, "[%s ", ct);
+   fprintf(sys->logFP, "System  ");
 
-   getStatData(log);
-   getMeminfoData(log);
-   getLoadavgData(log);
-   getDiskstatsData(log);
-   fprintf(log, "\n");
-   fclose(log);
+   getStatData(sys->logFP);
+   getMeminfoData(sys->logFP);
+   getLoadavgData(sys->logFP);
+   getDiskstatsData(sys->logFP);
+   fprintf(sys->logFP, "\n");
+   fclose(sys->logFP);
    usleep(sys->monitorInterval);
    //release lock
   // pthread_mutex_unlock(&mutex);
