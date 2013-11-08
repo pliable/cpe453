@@ -24,9 +24,9 @@ int main(int argc, char *argv[]) {
    monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
 
 
-   /* initializing monitorThreadID for future checking purposes */
+   /* initializing shorthandThreadID for future checking purposes */
    for(i = 0; i < MAX_PIDS; i++) {
-      pids[i].monitorThreadID = 0;
+      pids[i].shorthandThreadID = 0;
    }
 
    for(i = 0; i < 11; i++) {
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
    /****************** COMMAND THREAD **************************/
 
    monitor_data commandThread; /* "Data" for command thread */
-   commandThread.monitorThreadID = 0;
+   commandThread.shorthandThreadID = 0;
    strcpy(commandThread.pidBeingMonitored, "command");
    time(&commandThread.whenStarted);
    commandThread.monitorInterval = 0;
@@ -229,9 +229,9 @@ int main(int argc, char *argv[]) {
 
       if(strcmp(command[0], "listactive") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID != 0) {
-               printf("Monitoring Thread ID: %u8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
-                       pids[i].monitorThreadID, pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted),
+            if(pids[i].shorthandThreadID != 0) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted),
                        pids[i].monitorInterval, pids[i].logfile);
             } else {
                break;
@@ -242,9 +242,9 @@ int main(int argc, char *argv[]) {
 
       if(strcmp(command[0], "listcompleted") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID != 0 && pids[i].whenFinished) {
-               printf("Monitoring Thread ID: %u8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
-                       pids[i].monitorThreadID, pids[i].pidBeingMonitored,
+            if(pids[i].shorthandThreadID != 0 && pids[i].whenFinished) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       pids[i].shorthandThreadID, pids[i].pidBeingMonitored,
                        ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
                        pids[i].monitorInterval, pids[i].logfile);
             } else {
@@ -261,6 +261,7 @@ int main(int argc, char *argv[]) {
 
          if(strcmp(command[1], "-s") == 0) {
             /* issue cancel */
+            system.shorthandThreadID = 0;
             if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
                continue;
@@ -319,7 +320,7 @@ int main(int argc, char *argv[]) {
       if(strcmp(command[0], "exit") == 0) {
          char ans;
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].monitorThreadID) {
+            if(pids[i].shorthandThreadID) {
                printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
                scanf("%c", &ans);
 
