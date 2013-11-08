@@ -1,3 +1,0 @@
-// This script tests if mk_parser.py can reject an invalid parameter
-
-show <INT:abc_def#>
