@@ -23,8 +23,15 @@
 #include <errno.h>
 
 typedef struct {
+   int mutexIndex;
+   char logfile[256];
+} logfileMutexKeyVal;
+
+typedef struct {
    /* Need thread ID of pthread monitoring a pid */
-   pthread_t monitorThreadID; 
+   pthread_t monitorThreadID;
+   int shorthandThreadID;
+   FILE *logFP;
    char pidBeingMonitored[256]; /* "system", "command", or pid */
    time_t whenStarted;
    time_t whenFinished;
