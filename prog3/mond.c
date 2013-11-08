@@ -676,7 +676,7 @@ void pidhelper (int pid, int interval) {
 
 void getPidStatData(FILE **logfile, FILE **pidstat) {
    //rss here prints a space afer
-   char line[256], *format;
+   char line[BUFFER_SIZE], *format;
    int field = 0;
    
    fprintf(*logfile, "[STAT] ");
@@ -715,7 +715,7 @@ void getPidStatData(FILE **logfile, FILE **pidstat) {
 }
 
 void getPidStatmData(FILE **logfile, FILE **pidstatm) {
-   char line[256], *format;
+   char line[BUFFER_SIZE], *format;
    int field = 0;
    
    fprintf(*logfile, "[STATM] ");
