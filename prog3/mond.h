@@ -8,6 +8,7 @@
 #define LOADAVG "/proc/loadavg"
 #define DISKSTATS "/proc/diskstats"
 #define MAX_PIDS 10
+#define BUFFER_SIZE 256
 
 #include <stdint.h>
 #include <assert.h>
