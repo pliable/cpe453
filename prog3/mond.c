@@ -1,7 +1,8 @@
 #include "mond.h"
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+pthread_mutex_t m[11];
+pthread_mutex_t asdf = PTHREAD_MUTEX_INITIALIZER;
 int main(int argc, char *argv[]) {
 
    int checkSystemStats = 0, interval = 0, status;
@@ -23,9 +24,14 @@ int main(int argc, char *argv[]) {
    char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
    monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
 
+
    /* initializing monitorThreadID for future checking purposes */
    for(i = 0; i < MAX_PIDS; i++) {
       pids[i].monitorThreadID = 0;
+   }
+
+   for(i = 0; i < 11; i++) {
+      pthread_mutex_init(&m[i], NULL);  //does this actually work?
    }
 
    /******************* SYSTEM THREAD ***************************/
@@ -444,7 +450,7 @@ void *systemMonitorHelper(void *ptr) {
    //sys monitor always runs until exit  (put a while(1) here)
 
    //acquire lock
-   pthread_mutex_lock(&mutex);
+  // pthread_mutex_lock(&mutex);
    log = fopen(sys->logfile, "w");
    time(&t);
    ct = ctime(&t);
@@ -460,7 +466,7 @@ void *systemMonitorHelper(void *ptr) {
    fclose(log);
    usleep(sys->monitorInterval);
    //release lock
-   pthread_mutex_unlock(&mutex);
+  // pthread_mutex_unlock(&mutex);
 }
 
 void getStatData(FILE *logfile) {
