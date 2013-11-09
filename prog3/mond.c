@@ -1,7 +1,8 @@
 #include "mond.h"
 
 
-pthread_mutex_t m[11];
+pthread_mutex_t m[10];
+logfileMutexKeyVal pairs[10];
 int main(int argc, char *argv[]) {
 
    int checkSystemStats = 0, interval = 0, status;
@@ -16,7 +17,8 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0;
+   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0,
+       pairsIndex = 0;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    pthread_t tid;
    void *ret_val;
@@ -29,7 +31,7 @@ int main(int argc, char *argv[]) {
       pids[i].shorthandThreadID = 0;
    }
 
-   for(i = 0; i < 11; i++) {
+   for(i = 0; i < 10; i++) {
       pthread_mutex_init(&m[i], NULL);  //does this actually work?
    }
 
@@ -115,6 +117,11 @@ int main(int argc, char *argv[]) {
                printf("There is already a thread monitoring system statistics.\n");
                continue;
             }
+
+            /* Add the logfile and mutex to the array thang */
+            strcpy(pairs[pairsIndex].logfile, sysLogfile);
+            pairs[pairsIndex].mutexIndex = pairsIndex;
+            pairsIndex++;
 
             /* launch thread to monitor system shit. */
             system.monitorInterval = sysInterval;
@@ -443,6 +450,7 @@ void *systemMonitorHelper(void *ptr) {
    FILE *log;
    time_t t;
    char *ct;
+   int y, whichMutexToUse;
    monitor_data *sys = (monitor_data *) ptr;
    //printf("%02x\n", (unsigned)sys->monitorThreadID);
    //printf("%s\n", sys->pidBeingMonitored);
@@ -452,24 +460,31 @@ void *systemMonitorHelper(void *ptr) {
    
    //sys monitor always runs until exit  (put a while(1) here)
 
-   //acquire lock
-  // pthread_mutex_lock(&mutex);
-   sys->logFP = fopen(sys->logfile, "w");
-   time(&t);
-   ct = ctime(&t);
-   ct[strlen(ct) - 1] = ']';
-   fprintf(sys->logFP, "[%s ", ct);
-   fprintf(sys->logFP, "System  ");
+   /* Match up the logfile with the mutexxx */
+   for(y = 0; y < 10; y++) {
+      if(strcmp(sys->logfile, pairs[y].logfile) == 0) {
+         whichMutexToUse = pairs[y].mutexIndex;
+         break;
+      } 
+   }
+   while(1) {
+      pthread_mutex_lock(&m[whichMutexToUse]);
+      sys->logFP = fopen(sys->logfile, "a");
+      time(&t);
+      ct = ctime(&t);
+      ct[strlen(ct) - 1] = ']';
+      fprintf(sys->logFP, "[%s ", ct);
+      fprintf(sys->logFP, "System  ");
 
-   getStatData(sys->logFP);
-   getMeminfoData(sys->logFP);
-   getLoadavgData(sys->logFP);
-   getDiskstatsData(sys->logFP);
-   fprintf(sys->logFP, "\n");
-   fclose(sys->logFP);
-   usleep(sys->monitorInterval);
-   //release lock
-  // pthread_mutex_unlock(&mutex);
+      getStatData(sys->logFP);
+      getMeminfoData(sys->logFP);
+      getLoadavgData(sys->logFP);
+      getDiskstatsData(sys->logFP);
+      fprintf(sys->logFP, "\n");
+      fclose(sys->logFP);
+      pthread_mutex_unlock(&m[whichMutexToUse]);
+      usleep(sys->monitorInterval);
+   }
 }
 
 void getStatData(FILE *logfile) {
