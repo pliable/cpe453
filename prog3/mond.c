@@ -474,7 +474,7 @@ void *systemMonitorHelper(void *ptr) {
    }
    while(1) {
       pthread_mutex_lock(&m[whichMutexToUse]);
-      sys->logFP = fopen(sys->logfile, "w");
+      sys->logFP = fopen(sys->logfile, "a");
       time(&t);
       ct = ctime(&t);
       ct[strlen(ct) - 1] = ']';
