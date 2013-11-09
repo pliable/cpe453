@@ -347,8 +347,6 @@ int main(int argc, char *argv[]) {
                if(ans == 'y') {
                   /* closing system logfile */
                   fclose(system.logFP);
-                  /* closing command logfile */
-                  fclose(commandThread.logFP);
 
                   for(i = 0; i < MAX_PIDS; i++) {
                      /* ignoring ret vals since closing anyway */
