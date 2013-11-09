@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <signal.h>
 
 typedef struct {
    int mutexIndex;

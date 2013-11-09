@@ -335,7 +335,39 @@ int main(int argc, char *argv[]) {
       }
       
       if(strcmp(command[0], "kill") == 0) {
-         //do kill stuff
+         for(i = 0; i < MAX_PIDS; i++) {
+            if( strcmp(pids[i].pidBeingMonitored, command[1]) == 0) {
+               pthread_cancel(pids[i].monitorThreadID);
+
+               if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
+                  switch(status) {
+                     case EDEADLK:
+                        fprintf(stderr, "Deadlock detected\n");
+                        break;
+                     case EINVAL:
+                        fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                        break;
+                     case ESRCH:
+                        fprintf(stderr, "No thread could be found\n");
+                        break;
+                  }
+               }
+            }
+         }
+
+         if(i == MAX_PIDS - 1) {
+            fprintf(stderr, "PID does not exist\n");
+            continue;
+         }
+
+         long local_pid = strtol(command[1], NULL, 10);
+
+         if(local_pid == 0) {
+            fprintf(stderr, "Malformed PID\n");
+            continue;
+         }
+
+         kill(local_pid, SIGKILL);
       }
 
       if(strcmp(command[0], "exit") == 0) {
