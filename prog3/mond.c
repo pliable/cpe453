@@ -331,6 +331,7 @@ int main(int argc, char *argv[]) {
                continue;
             }
          }
+         continue;
       }
       
       if(strcmp(command[0], "kill") == 0) {
@@ -465,6 +466,7 @@ void *systemMonitorHelper(void *ptr) {
    
    //sys monitor always runs until exit  (put a while(1) here)
 
+
    /* Match up the logfile with the mutexxx */
    for(y = 0; y < 10; y++) {
       if(strcmp(sys->logfile, pairs[y].logfile) == 0) {
@@ -472,8 +474,10 @@ void *systemMonitorHelper(void *ptr) {
          break;
       } 
    }
+   //set cancel type
    while(1) {
       pthread_mutex_lock(&m[whichMutexToUse]);
+      //set cancel state to FUCK YOU
       sys->logFP = fopen(sys->logfile, "a");
       time(&t);
       ct = ctime(&t);
@@ -488,6 +492,7 @@ void *systemMonitorHelper(void *ptr) {
       fprintf(sys->logFP, "\n");
       fclose(sys->logFP);
       pthread_mutex_unlock(&m[whichMutexToUse]);
+      //set cancel state to LOVE YOU`
       usleep(sys->monitorInterval);
    }
 }
