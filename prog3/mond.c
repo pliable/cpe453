@@ -298,18 +298,25 @@ int main(int argc, char *argv[]) {
          }
 
          if(strcmp(command[1], "-t") == 0) {
-            if((tid = strtol(command[2], NULL, 10)) <= 0) {
+            int sThreadID;
+
+            if((sThreadID = strtol(command[2], NULL, 10)) <= 0) {
                printf("Please indicate a tid to remove after the '-t'\n");
                continue;
             }
 
+            for(i = 0; i < MAX_PIDS; i++) {
+               if(pids[i].shorthandThreadID == sThreadID) {
+                  break;
+               }
+            }
+
             /* cancelling thread */
-            if( (status = pthread_cancel(tid)) == ESRCH) {
+            if( (status = pthread_cancel(pids[i].monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
             }
 
-            /* wait for thread to terminate */
-            if( (status = pthread_join(tid, &ret_val)) != 0) {
+            if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
                switch(status) {
                   case EDEADLK:
                      fprintf(stderr, "Deadlock detected\n");
@@ -450,7 +457,7 @@ void *systemMonitorHelper(void *ptr) {
    FILE *log;
    time_t t;
    char *ct;
-   int y, whichMutexToUse;
+   int y, whichMutexToUse = 0;
    monitor_data *sys = (monitor_data *) ptr;
    //printf("%02x\n", (unsigned)sys->monitorThreadID);
    //printf("%s\n", sys->pidBeingMonitored);
