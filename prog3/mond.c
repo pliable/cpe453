@@ -124,6 +124,7 @@ int main(int argc, char *argv[]) {
             pairsIndex++;
 
             /* launch thread to monitor system shit. */
+            strcpy(system.pidBeingMonitored, "system");
             system.monitorInterval = sysInterval;
             strcpy(system.logfile, sysLogfile);
             system.shorthandThreadID = shorthandMonitorThreadID;
@@ -170,6 +171,7 @@ int main(int argc, char *argv[]) {
                continue;
             }
             /* launch thread to monitor that pid file */
+
             continue;
          }
 
