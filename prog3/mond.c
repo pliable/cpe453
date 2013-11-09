@@ -343,23 +343,19 @@ int main(int argc, char *argv[]) {
 
                   /* closing threads */
 
+                  /* closing system */
                   pthread_cancel(system.monitorThreadID);
-                  /*check here too maybe*/
                   pthread_join(system.monitorThreadID, &ret_val);
-                  
+                 
+                  /* closing command thread */
                   pthread_cancel(commandThread.monitorThreadID);
-                  /*check here too maybe*/
                   pthread_join(commandThread.monitorThreadID, &ret_val);
 
+                  /* closing monitor threads */
                   for(i = 0; i < MAX_PIDS; i++) {
                      /*intentionally ignoring ret value here because we 
                        want all thread to be killed anyway */
                      pthread_cancel(pids[i].monitorThreadID);
-                  }
-
-                  /* waiting for closed threads */
-
-                  for(i = 0; i < MAX_PIDS; i++) {
                      if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
                         switch(status) {
                            case EDEADLK:
@@ -374,7 +370,6 @@ int main(int argc, char *argv[]) {
                         }
                      }
                   }
-
                   exit(EXIT_SUCCESS);
                } else {
                   continue;
