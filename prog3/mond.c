@@ -475,9 +475,10 @@ void *systemMonitorHelper(void *ptr) {
       } 
    }
    //set cancel type
+   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
    while(1) {
+      pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
       pthread_mutex_lock(&m[whichMutexToUse]);
-      //set cancel state to FUCK YOU
       sys->logFP = fopen(sys->logfile, "a");
       time(&t);
       ct = ctime(&t);
@@ -492,7 +493,7 @@ void *systemMonitorHelper(void *ptr) {
       fprintf(sys->logFP, "\n");
       fclose(sys->logFP);
       pthread_mutex_unlock(&m[whichMutexToUse]);
-      //set cancel state to LOVE YOU`
+      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
    }
 }
