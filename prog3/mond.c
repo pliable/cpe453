@@ -278,16 +278,14 @@ int main(int argc, char *argv[]) {
 
          /* printing monitor threads */
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].shorthandThreadID && (pids[i].whenFinished ==0)) {
+            if(pids[i].shorthandThreadID && (pids[i].whenFinished == 0)) {
                ctime_r(&pids[i].whenStarted, ctime_buf);
                ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
                printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
                        pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf,
                        pids[i].monitorInterval, pids[i].logfile);
-            } else {
-               break;
-            }
+            } 
          }
 
          continue;
@@ -359,17 +357,41 @@ int main(int argc, char *argv[]) {
             int sThreadID;
 
             if((sThreadID = strtol(command[2], NULL, 10)) <= 0) {
-               printf("Please indicate a tid to remove after the '-t'\n");
+               fprintf(stderr, "Please indicate a tid to remove after the '-t'\n");
                continue;
             }
 
+            /* searching for thread */
             for(i = 0; i < MAX_PIDS; i++) {
                if(pids[i].shorthandThreadID == sThreadID) {
                   break;
                }
             }
 
+            /* if i is MAX_PIDS, thread couldn't be found */
+            if(i == MAX_PIDS) {
+               fprintf(stderr, "Thread could not be found, please try again\n");
+               continue;
+            }
+               
+
             /* i is the index we want now */
+
+            /* checking if anything else is writing to same log file, and if
+             there isn't, close it */
+            int j;
+            for(j = 0; j < MAX_PIDS; j++) {
+               /* dirty check to skip over checking itself */
+               if(i == j) {
+                  continue;
+               }
+
+               if(!(strcmp(pids[j].logfile, pids[i].logfile) == 0)) {
+                  printf("this is a future test printf to ensure this isn't running billions of times\n");
+                  fclose(pids[i].logFP);
+                  break;
+               }
+            }
 
             time(&pids[i].whenFinished);
 
@@ -390,20 +412,20 @@ int main(int argc, char *argv[]) {
                      fprintf(stderr, "No thread could be found\n");
                      break;
                }
-               continue;
             }
 
-            /* setting to zero to signify it's empty */
+            /* setting to zero to signify this slot is empty */
             pids[i].shorthandThreadID = 0;
+            continue;
          } else {
             printf("Usage: remove <-s || -t threadID>\n");
             continue;
          }
-         continue;
       }
       
       if(strcmp(command[0], "kill") == 0) {
          for(i = 0; i < MAX_PIDS; i++) {
+            /* kill all threads associated with process */
             if( strcmp(pids[i].pidBeingMonitored, command[1]) == 0) {
                pthread_cancel(pids[i].monitorThreadID);
 
@@ -430,6 +452,7 @@ int main(int argc, char *argv[]) {
             continue;
          }
 
+         /* kill process */
          kill(local_pid, SIGKILL);
       }
 
