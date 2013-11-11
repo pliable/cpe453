@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
    /******************* SYSTEM THREAD ***************************/
 
    monitor_data system; /* System monitor thread information */
+   system.shorthandThreadID = 0;
    strcpy(system.pidBeingMonitored, "system");
 
    /****************** COMMAND THREAD **************************/
@@ -52,9 +53,13 @@ int main(int argc, char *argv[]) {
    /* write and set cleanup functions for everythign */
 
    /* initialization */
+   /* writing default log file name of "default.log" */
+   strncpy(defaultLogfile, "default.log", BUFFER_SIZE);
+   /*
    for(i = 0; i < BUFFER_SIZE; i++) {
       defaultLogfile[i] = '\0';
    }
+   */
 
 
    while(1) {
@@ -85,6 +90,8 @@ int main(int argc, char *argv[]) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
             int sysInterval = defaultInterval;
             char *sysLogfile = defaultLogfile;
+            /* assigning zero for future printing purposes */
+            system.whenFinished = 0;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
                if((sysInterval = strtol(command[3], NULL, 10)) <= 0) {
                   printf("Please put an actual number for the interval after '-i'.\n");
@@ -244,6 +251,20 @@ int main(int argc, char *argv[]) {
       }
 
       if(strcmp(command[0], "listactive") == 0) {
+         /* printing system monitor */
+         if(system.shorthandThreadID && system.whenFinished == 0) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       system.shorthandThreadID, "system", ctime(&system.whenStarted),
+                       system.monitorInterval, system.logfile);
+         }
+
+         if(commandThread.shorthandThreadID && commandThread.whenFinished == 0) {
+               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                       commandThread.shorthandThreadID, "command", ctime(&commandThread.whenStarted),
+                       commandThread.monitorInterval, commandThread.logfile);
+         }
+
+         /* printing monitor threads */
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].shorthandThreadID != 0) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
@@ -252,8 +273,9 @@ int main(int argc, char *argv[]) {
             } else {
                break;
             }
-            continue;
          }
+
+         continue;
       }
 
       if(strcmp(command[0], "listcompleted") == 0) {
@@ -427,11 +449,9 @@ int main(int argc, char *argv[]) {
       }
       else {
          printf("Not a valid command\n");
-         return -1;
+         continue;
       }
    }
-
-
 
 
 
