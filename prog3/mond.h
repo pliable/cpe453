@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/wait.h>
 #include <pthread.h>
 #include <stdlib.h>
