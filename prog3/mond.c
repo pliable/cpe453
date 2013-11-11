@@ -20,7 +20,10 @@ int main(int argc, char *argv[]) {
    int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0,
        pairsIndex = 0;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
-   pthread_t tid;
+   /* use these with ctime_r; can't use ctime back to back because 
+      it uses a statically allocated buffer*/
+   char ctime_buf[BUFFER_SIZE];
+   char ctime_buf2[BUFFER_SIZE];
    void *ret_val;
    char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
    monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
@@ -74,12 +77,13 @@ int main(int argc, char *argv[]) {
          }
       }
       printf("Command: ");
+      /* call me crazy, but this might be blocking on all threads... */
       fgets(input, BUFFER_SIZE, stdin);
       token = strtok(input, " \n");
       commPoint = 0;
       while(token != NULL) {
          //This sprintf might break
-         sprintf(command[commPoint], token);
+         sprintf(command[commPoint], "%s", token);
          commPoint++;
          //schoo note: above is incrementing now it seems
          if(commPoint > 6) {
@@ -93,7 +97,7 @@ int main(int argc, char *argv[]) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
             int sysInterval = defaultInterval;
             char *sysLogfile = defaultLogfile;
-            /* assigning zero for future printing purposes */
+            /* if system is being added again, resetting when finished as well */
             system.whenFinished = 0;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
                if((sysInterval = strtol(command[3], NULL, 10)) <= 0) {
@@ -257,30 +261,33 @@ int main(int argc, char *argv[]) {
          /* printing system monitor */
          if(system.shorthandThreadID && (system.whenFinished == 0)) {
             /* getting rid of of \n */
-            char *temp = ctime(&system.whenStarted);
-            temp[strlen(temp) - 1] = '\0';
+            ctime_r(&system.whenStarted, ctime_buf);
+            ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, "system", temp,
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
+                    system.shorthandThreadID, "system", ctime_buf,
                     system.monitorInterval, system.logfile);
          }
 
          /* printing command thread */
          if(commandThread.shorthandThreadID && (commandThread.whenFinished == 0)) {
             /* getting rid of of \n */
-            char *temp = ctime(&system.whenStarted);
-            temp[strlen(temp) - 1] = '\0';
+            ctime_r(&commandThread.whenStarted, ctime_buf);
+            ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
-                    commandThread.shorthandThreadID, "command", temp,
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
+                    commandThread.shorthandThreadID, "command", ctime_buf,
                     commandThread.monitorInterval, commandThread.logfile);
          }
 
          /* printing monitor threads */
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].shorthandThreadID != 0) {
-               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
-                       pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted),
+               ctime_r(&pids[i].whenStarted, ctime_buf);
+               ctime_buf[strlen(ctime_buf) - 1] = '\0';
+
+               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
+                       pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf,
                        pids[i].monitorInterval, pids[i].logfile);
             } else {
                break;
@@ -290,40 +297,43 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
-      /* this isn't being reached and I'm confused */
       if(strcmp(command[0], "listcompleted") == 0) {
          /* printing system monitor */
          if(system.whenFinished) {
             /* getting rid of of \n */
-            char *temp = ctime(&system.whenStarted);
-            char *temp2 = ctime(&system.whenFinished);
-            temp[strlen(temp) - 1] = '\0';
-            temp[strlen(temp2) - 1] = '\0';
+            ctime_r(&system.whenStarted, ctime_buf);
+            ctime_r(&system.whenFinished, ctime_buf2);
+            ctime_buf[strlen(ctime_buf) - 1] = '\0';
+            ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Finished: %8s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, "system", temp, temp2,
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
+                    system.shorthandThreadID, "system", ctime_buf, ctime_buf2,
                     system.monitorInterval, system.logfile);
          }
 
          /* printing command thread */
          if(commandThread.whenFinished) {
             /* getting rid of of \n */
-            char *temp = ctime(&system.whenStarted);
-            char *temp2 = ctime(&system.whenFinished);
-            temp[strlen(temp) - 1] = '\0';
-            temp[strlen(temp2) - 1] = '\0';
+            ctime_r(&commandThread.whenStarted, ctime_buf);
+            ctime_r(&commandThread.whenFinished, ctime_buf2);
+            ctime_buf[strlen(ctime_buf) - 1] = '\0';
+            ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Finished: %8s | Monitor Interval: %8d | Log File: %s\n",
-                    commandThread.shorthandThreadID, "command", temp, temp2,
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
+                    commandThread.shorthandThreadID, "command", ctime_buf, ctime_buf2,
                     commandThread.monitorInterval, commandThread.logfile);
          }
 
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].whenFinished) {
-               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Completed: %8s | Monitor Interval: %8d | Log File: %s\n",
+               ctime_r(&pids[i].whenStarted, ctime_buf);
+               ctime_r(&pids[i].whenFinished, ctime_buf2);
+               ctime_buf[strlen(ctime_buf) - 1] = '\0';
+               ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
+
+               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Completed: %s | Monitor Interval: %8d | Log File: %s\n",
                        pids[i].shorthandThreadID, pids[i].pidBeingMonitored,
-                       ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
-                       pids[i].monitorInterval, pids[i].logfile);
+                       ctime_buf, ctime_buf2, pids[i].monitorInterval, pids[i].logfile);
             } else {
                break;
             }
@@ -333,10 +343,10 @@ int main(int argc, char *argv[]) {
 
       if(strcmp(command[0], "remove") == 0) {
          int status;
-         /* filling out when finished */
-         time(&system.whenFinished);
 
          if(strcmp(command[1], "-s") == 0) {
+            /* filling out when finished */
+            time(&system.whenFinished);
             /* issue cancel */
             system.shorthandThreadID = 0;
             if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
@@ -375,6 +385,10 @@ int main(int argc, char *argv[]) {
                }
             }
 
+            /* i is the index we want now */
+
+            time(&pids[i].whenFinished);
+
             /* cancelling thread */
             if( (status = pthread_cancel(pids[i].monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
@@ -394,6 +408,9 @@ int main(int argc, char *argv[]) {
                }
                continue;
             }
+
+            /* setting to zero to signify it's empty */
+            pids[i].shorthandThreadID = 0;
          }
          continue;
       }
@@ -419,7 +436,7 @@ int main(int argc, char *argv[]) {
             }
          }
 
-         if(i == MAX_PIDS - 1) {
+         if(i == MAX_PIDS) {
             fprintf(stderr, "PID does not exist\n");
             continue;
          }
@@ -440,50 +457,55 @@ int main(int argc, char *argv[]) {
             if(pids[i].shorthandThreadID) {
                printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
                scanf("%c", &ans);
+               break;
+            }
+         }
 
-               if(ans == 'y') {
-                  /* closing system logfile */
-                  fclose(system.logFP);
+         if(ans == 'y' || i == MAX_PIDS) {
+            /* closing threads */
 
-                  for(i = 0; i < MAX_PIDS; i++) {
-                     /* ignoring ret vals since closing anyway */
-                     fclose(pids[i].logFP);
-                  }
+            /* closing system if open */
+            if(system.shorthandThreadID) {
+               /* closing system logfile */
+               fclose(system.logFP);
+               pthread_cancel(system.monitorThreadID);
+               pthread_join(system.monitorThreadID, &ret_val);
+            }
+           
+            /* closing command thread if open */
+            if(commandThread.shorthandThreadID) {
+               pthread_cancel(commandThread.monitorThreadID);
+               pthread_join(commandThread.monitorThreadID, &ret_val);
+            }
 
-                  /* closing threads */
+            /* closing monitor threads */
+            for(i = 0; i < MAX_PIDS; i++) {
+               if(pids[i].shorthandThreadID) {
+                  /* closing log file */
+                  fclose(pids[i].logFP);
 
-                  /* closing system */
-                  pthread_cancel(system.monitorThreadID);
-                  pthread_join(system.monitorThreadID, &ret_val);
-                 
-                  /* closing command thread */
-                  pthread_cancel(commandThread.monitorThreadID);
-                  pthread_join(commandThread.monitorThreadID, &ret_val);
-
-                  /* closing monitor threads */
-                  for(i = 0; i < MAX_PIDS; i++) {
-                     /*intentionally ignoring ret value here because we 
-                       want all thread to be killed anyway */
-                     pthread_cancel(pids[i].monitorThreadID);
-                     if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
-                        switch(status) {
-                           case EDEADLK:
-                              fprintf(stderr, "Deadlock detected\n");
-                              break;
-                           case EINVAL:
-                              fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
-                              break;
-                           case ESRCH:
-                              fprintf(stderr, "No thread could be found\n");
-                              break;
-                        }
+                  /*intentionally ignoring ret value here because we 
+                    want all thread to be killed anyway */
+                  pthread_cancel(pids[i].monitorThreadID);
+                  if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
+                     switch(status) {
+                        case EDEADLK:
+                           fprintf(stderr, "Deadlock detected\n");
+                           break;
+                        case EINVAL:
+                           fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                           break;
+                        case ESRCH:
+                           fprintf(stderr, "No thread could be found\n");
+                           break;
                      }
                   }
-                  exit(EXIT_SUCCESS);
-               } else {
-                  continue;
                }
             }
+
+            exit(EXIT_SUCCESS);
+         } else {
+            continue;
          }
       }
       else {
@@ -546,15 +568,14 @@ int main(int argc, char *argv[]) {
    return 0;
 }
 
-void *pidhelper (void *ptr) { 
-      //wait for the pid it is being monitored to end
-      //open the proc files
-      //call pidstatdata and pidstatmdata
-      //sleep
+void *pidhelper(void *ptr) {
+   //wait for the pid it is being monitored to end
+   //open the proc files
+   //call pidstatdata and pidstatmdata
+   //sleep
 }
 
 void *systemMonitorHelper(void *ptr) {
-   FILE *log;
    time_t t;
    char *ct;
    int y, whichMutexToUse = 0;
