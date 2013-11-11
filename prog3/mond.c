@@ -26,9 +26,11 @@ int main(int argc, char *argv[]) {
    monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
 
 
-   /* initializing shorthandThreadID for future checking purposes */
+   /* initializing vars for future checking purposes */
    for(i = 0; i < MAX_PIDS; i++) {
       pids[i].shorthandThreadID = 0;
+      pids[i].whenStarted = 0;
+      pids[i].whenFinished = 0;
    }
 
    for(i = 0; i < 10; i++) {
@@ -39,6 +41,7 @@ int main(int argc, char *argv[]) {
 
    monitor_data system; /* System monitor thread information */
    system.shorthandThreadID = 0;
+   system.whenFinished = 0;
    strcpy(system.pidBeingMonitored, "system");
 
    /****************** COMMAND THREAD **************************/
@@ -47,6 +50,7 @@ int main(int argc, char *argv[]) {
    commandThread.shorthandThreadID = 0;
    strcpy(commandThread.pidBeingMonitored, "command");
    time(&commandThread.whenStarted);
+   commandThread.whenFinished = 0;
    commandThread.monitorInterval = 0;
    strcpy(commandThread.logfile ,"N/A");
 
@@ -256,7 +260,7 @@ int main(int argc, char *argv[]) {
             char *temp = ctime(&system.whenStarted);
             temp[strlen(temp) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
                     system.shorthandThreadID, "system", temp,
                     system.monitorInterval, system.logfile);
          }
@@ -267,7 +271,7 @@ int main(int argc, char *argv[]) {
             char *temp = ctime(&system.whenStarted);
             temp[strlen(temp) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
                     commandThread.shorthandThreadID, "command", temp,
                     commandThread.monitorInterval, commandThread.logfile);
          }
@@ -275,7 +279,7 @@ int main(int argc, char *argv[]) {
          /* printing monitor threads */
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].shorthandThreadID != 0) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Monitor Interval: %8d | Log File: %s\n",
                        pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime(&pids[i].whenStarted),
                        pids[i].monitorInterval, pids[i].logfile);
             } else {
@@ -296,7 +300,7 @@ int main(int argc, char *argv[]) {
             temp[strlen(temp) - 1] = '\0';
             temp[strlen(temp2) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Finished: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Finished: %8s | Monitor Interval: %8d | Log File: %s\n",
                     system.shorthandThreadID, "system", temp, temp2,
                     system.monitorInterval, system.logfile);
          }
@@ -309,14 +313,14 @@ int main(int argc, char *argv[]) {
             temp[strlen(temp) - 1] = '\0';
             temp[strlen(temp2) - 1] = '\0';
 
-            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Finished: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Finished: %8s | Monitor Interval: %8d | Log File: %s\n",
                     commandThread.shorthandThreadID, "command", temp, temp2,
                     commandThread.monitorInterval, commandThread.logfile);
          }
 
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].whenFinished) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+               printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %8s | Time Completed: %8s | Monitor Interval: %8d | Log File: %s\n",
                        pids[i].shorthandThreadID, pids[i].pidBeingMonitored,
                        ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
                        pids[i].monitorInterval, pids[i].logfile);
