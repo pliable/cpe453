@@ -186,6 +186,29 @@ int main(int argc, char *argv[]) {
             }
             /* launch thread to monitor that pid file */
 
+            /* Add the logfile and mutex to the array thang */
+            strcpy(pairs[pairsIndex].logfile, pidLogfile);
+            pairs[pairsIndex].mutexIndex = pairsIndex;
+            pairsIndex++;
+
+            /* find first available pids slot */
+            for(i = 0; i < MAX_PIDS; i++) {
+               if(pids[i].shorthandThreadID == 0) {
+                  break;
+               }
+            }
+
+            /* i be the index we want now */
+
+            /* fill pids[i] with info */
+            strcpy(pids[i].pidBeingMonitored, command[2]);
+            pids[i].monitorInterval = pidInterval;
+            strcpy(pids[i].logfile, pidLogfile);
+            pids[i].shorthandThreadID = shorthandMonitorThreadID++;
+            time(&pids[i].whenStarted);
+            /* launch thread to monitor system shit. */
+            pthread_create(&pids[i].monitorThreadID, NULL, &pidMonitorHelper, (void *)&pids[i]);
+
             continue;
          }
 
@@ -226,6 +249,57 @@ int main(int argc, char *argv[]) {
                continue;
             }
             /* launch the new executable */
+            pid_t new_pid = vfork();
+            if(new_pid < 0) {
+               perror("vfork");
+               exit(EXIT_FAILURE);
+            }
+
+            /* parent stuff */
+            if(new_pid) {
+               /* find first available slot for pid table */
+               for(i = 0; i < MAX_PIDS; i++) {
+                  if(pids[i].shorthandThreadID == 0) {
+                     break;
+                  }
+               }
+
+               /* Add the logfile and mutex to the array thang */
+               strcpy(pairs[pairsIndex].logfile, execLogfile);
+               pairs[pairsIndex].mutexIndex = pairsIndex;
+               pairsIndex++;
+
+               /* converting long to string */
+               int n = snprintf(NULL, 0, "%dl", new_pid);
+               if(n < 0) {
+                  printf("snprintf fail");
+                  continue;
+               }
+               char buf[n + 1];
+               int c = snprintf(buf, n + 1, "%dl", new_pid);
+               if(c < 0) {
+                  printf("snprintf fail again");
+                  continue;
+               }
+
+               /* fill pids[i] with info */
+               strcpy(pids[i].pidBeingMonitored, buf);
+               pids[i].monitorInterval = execInterval;
+               strcpy(pids[i].logfile, execLogfile);
+               pids[i].shorthandThreadID = shorthandMonitorThreadID++;
+               time(&pids[i].whenStarted);
+               /* launch thread to monitor system shit. */
+               pthread_create(&pids[i].monitorThreadID, NULL, &pidMonitorHelper, (void *)&pids[i]);
+
+               continue;
+
+            } else { /* child stuff */
+              if(execlp(command[2], command[2], (char *)NULL) < 0) {
+                 perror("execlp");
+                 exit(EXIT_FAILURE);
+              }
+            }
+
             continue;
          }
          else {//this else always getting triggered. wts
@@ -567,7 +641,7 @@ int main(int argc, char *argv[]) {
    return 0;
 }
 
-void *pidhelper(void *ptr) {
+void *pidMonitorHelper(void *ptr) {
    //wait for the pid it is being monitored to end
    //open the proc files
    //call pidstatdata and pidstatmdata

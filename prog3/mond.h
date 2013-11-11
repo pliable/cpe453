@@ -46,4 +46,5 @@ void getDiskstatsData(FILE *logfile);
 void getLoadavgData(FILE *logfile);
 void getPidStatData(FILE **logfile, FILE **pidstat);
 void getPidStatmData(FILE **logfile, FILE **pidstatm);
-void *systemMonitorHelper(void *sys);
+void *pidMonitorHelper(void *ptr);
+void *systemMonitorHelper(void *ptr);
