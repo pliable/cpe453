@@ -667,8 +667,7 @@ void *pidMonitorHelper(void *ptr) {
    //set cancel type
    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
    //wait for the pid it is being monitored to end
-   //while((waitpid(pid, &status, WNOHANG)) == 0) {
-     while(1) {
+   while((waitpid(pid, &status, WNOHANG)) == 0) {
       printf("hittin dat wait loop yo\n");
       /* attain the lock */
       pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
