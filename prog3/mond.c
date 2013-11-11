@@ -76,9 +76,8 @@ int main(int argc, char *argv[]) {
       while(token != NULL) {
          //This sprintf might break
          sprintf(command[commPoint], token);
-         commPoint++;//this is not incrementing wts
-         //schoo note: changed above to commPoint++ to see if that
-         //makes a difference and increments?
+         commPoint++;
+         //schoo note: above is incrementing now it seems
          if(commPoint > 6) {
             printf("Too many arguments\n");
             return -1;
@@ -290,7 +289,7 @@ int main(int argc, char *argv[]) {
       /* this isn't being reached and I'm confused */
       if(strcmp(command[0], "listcompleted") == 0) {
          /* printing system monitor */
-         if(system.shorthandThreadID && system.whenFinished) {
+         if(system.whenFinished) {
             /* getting rid of of \n */
             char *temp = ctime(&system.whenStarted);
             char *temp2 = ctime(&system.whenFinished);
@@ -303,7 +302,7 @@ int main(int argc, char *argv[]) {
          }
 
          /* printing command thread */
-         if(commandThread.shorthandThreadID && commandThread.whenFinished) {
+         if(commandThread.whenFinished) {
             /* getting rid of of \n */
             char *temp = ctime(&system.whenStarted);
             char *temp2 = ctime(&system.whenFinished);
@@ -316,7 +315,7 @@ int main(int argc, char *argv[]) {
          }
 
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].shorthandThreadID != 0 && pids[i].whenFinished) {
+            if(pids[i].whenFinished) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
                        pids[i].shorthandThreadID, pids[i].pidBeingMonitored,
                        ctime(&pids[i].whenStarted), ctime(&pids[i].whenFinished),
@@ -324,8 +323,8 @@ int main(int argc, char *argv[]) {
             } else {
                break;
             }
-            continue;
          }
+         continue;
       }
 
       if(strcmp(command[0], "remove") == 0) {
@@ -541,6 +540,13 @@ int main(int argc, char *argv[]) {
    fclose(logFile);
 
    return 0;
+}
+
+void *pidhelper (void *ptr) { 
+      //wait for the pid it is being monitored to end
+      //open the proc files
+      //call pidstatdata and pidstatmdata
+      //sleep
 }
 
 void *systemMonitorHelper(void *ptr) {
@@ -791,13 +797,6 @@ void getLoadavgData(FILE *logfile) {
    fprintf(logfile, " 15min ");
    fprintf(logfile, "%s", strtok(NULL, " "));
    fclose(loadavg);
-}
-
-void pidhelper (int pid, int interval) { 
-      //wait for the pid it is being monitored to end
-      //open the proc files
-      //call pidstatdata and pidstatmdata
-      //sleep
 }
 
 void getPidStatData(FILE **logfile, FILE **pidstat) {
