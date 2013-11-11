@@ -78,7 +78,6 @@ int main(int argc, char *argv[]) {
          }
       }
       printf("Command: ");
-      /* call me crazy, but this might be blocking on all threads... */
       fgets(input, BUFFER_SIZE, stdin);
       token = strtok(input, " \n");
       commPoint = 0;
