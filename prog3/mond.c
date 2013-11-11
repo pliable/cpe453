@@ -17,7 +17,8 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0,
+   /* starting shorthandMonitorThreadID at 2 to reserve 1 for the command thread */
+   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 2, currentPidMon = 0,
        pairsIndex = 0;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    /* use these with ctime_r; can't use ctime back to back because 
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
    /****************** COMMAND THREAD **************************/
 
    monitor_data commandThread; /* "Data" for command thread */
-   commandThread.shorthandThreadID = 0;
+   commandThread.shorthandThreadID = 1;
    strcpy(commandThread.pidBeingMonitored, "command");
    time(&commandThread.whenStarted);
    commandThread.whenFinished = 0;
@@ -82,10 +83,8 @@ int main(int argc, char *argv[]) {
       token = strtok(input, " \n");
       commPoint = 0;
       while(token != NULL) {
-         //This sprintf might break
          sprintf(command[commPoint], "%s", token);
          commPoint++;
-         //schoo note: above is incrementing now it seems
          if(commPoint > 6) {
             printf("Too many arguments\n");
             return -1;
@@ -231,7 +230,7 @@ int main(int argc, char *argv[]) {
          }
          else {//this else always getting triggered. wts
             printf("Usage: add <-s || -p pID || -e executable> [-i interval] [-f logfile]\n");
-            return -1;
+            continue;
          }
       }
 
@@ -253,11 +252,19 @@ int main(int argc, char *argv[]) {
          }
          else {
             printf("Usage: set <interval numberInMicroseconds || logfile logfileName>\n");
-            return -1;
+            continue;
          }
       }
 
       if(strcmp(command[0], "listactive") == 0) {
+         /* printing command thread */
+         ctime_r(&commandThread.whenStarted, ctime_buf);
+         ctime_buf[strlen(ctime_buf) - 1] = '\0';
+
+         printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
+                 commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf,
+                 commandThread.monitorInterval, commandThread.logfile);
+
          /* printing system monitor */
          if(system.shorthandThreadID && (system.whenFinished == 0)) {
             /* getting rid of of \n */
@@ -265,24 +272,13 @@ int main(int argc, char *argv[]) {
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
             printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, "system", ctime_buf,
+                    system.shorthandThreadID, system.pidBeingMonitored, ctime_buf,
                     system.monitorInterval, system.logfile);
-         }
-
-         /* printing command thread */
-         if(commandThread.shorthandThreadID && (commandThread.whenFinished == 0)) {
-            /* getting rid of of \n */
-            ctime_r(&commandThread.whenStarted, ctime_buf);
-            ctime_buf[strlen(ctime_buf) - 1] = '\0';
-
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-                    commandThread.shorthandThreadID, "command", ctime_buf,
-                    commandThread.monitorInterval, commandThread.logfile);
          }
 
          /* printing monitor threads */
          for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].shorthandThreadID != 0) {
+            if(pids[i].shorthandThreadID && (pids[i].whenFinished ==0)) {
                ctime_r(&pids[i].whenStarted, ctime_buf);
                ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
@@ -307,23 +303,11 @@ int main(int argc, char *argv[]) {
             ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
             printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, "system", ctime_buf, ctime_buf2,
+                    system.shorthandThreadID, system.pidBeingMonitored, ctime_buf, ctime_buf2,
                     system.monitorInterval, system.logfile);
          }
 
          /* printing command thread */
-         if(commandThread.whenFinished) {
-            /* getting rid of of \n */
-            ctime_r(&commandThread.whenStarted, ctime_buf);
-            ctime_r(&commandThread.whenFinished, ctime_buf2);
-            ctime_buf[strlen(ctime_buf) - 1] = '\0';
-            ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
-
-            printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
-                    commandThread.shorthandThreadID, "command", ctime_buf, ctime_buf2,
-                    commandThread.monitorInterval, commandThread.logfile);
-         }
-
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].whenFinished) {
                ctime_r(&pids[i].whenStarted, ctime_buf);
@@ -345,10 +329,10 @@ int main(int argc, char *argv[]) {
          int status;
 
          if(strcmp(command[1], "-s") == 0) {
+            system.shorthandThreadID = 0;
             /* filling out when finished */
             time(&system.whenFinished);
             /* issue cancel */
-            system.shorthandThreadID = 0;
             if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
                continue;
@@ -411,6 +395,9 @@ int main(int argc, char *argv[]) {
 
             /* setting to zero to signify it's empty */
             pids[i].shorthandThreadID = 0;
+         } else {
+            printf("Usage: remove <-s || -t threadID>\n");
+            continue;
          }
          continue;
       }
@@ -436,15 +423,10 @@ int main(int argc, char *argv[]) {
             }
          }
 
-         if(i == MAX_PIDS) {
-            fprintf(stderr, "PID does not exist\n");
-            continue;
-         }
-
          long local_pid = strtol(command[1], NULL, 10);
 
-         if(local_pid == 0) {
-            fprintf(stderr, "Malformed PID\n");
+         if(i == MAX_PIDS || local_pid == 0) {
+            fprintf(stderr, "PID does not exist or is malformed\n");
             continue;
          }
 
@@ -464,18 +446,12 @@ int main(int argc, char *argv[]) {
          if(ans == 'y' || i == MAX_PIDS) {
             /* closing threads */
 
-            /* closing system if open */
+            /* closing system monitor if open */
             if(system.shorthandThreadID) {
                /* closing system logfile */
                fclose(system.logFP);
                pthread_cancel(system.monitorThreadID);
                pthread_join(system.monitorThreadID, &ret_val);
-            }
-           
-            /* closing command thread if open */
-            if(commandThread.shorthandThreadID) {
-               pthread_cancel(commandThread.monitorThreadID);
-               pthread_join(commandThread.monitorThreadID, &ret_val);
             }
 
             /* closing monitor threads */
