@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
       printf("Command: ");
       fgets(input, BUFFER_SIZE, stdin);
       token = strtok(input, " \n");
+      commPoint = 0;
       while(token != NULL) {
          //This sprintf might break
          sprintf(command[commPoint], token);
@@ -85,7 +86,6 @@ int main(int argc, char *argv[]) {
          token = strtok(NULL, " \n");
       }
          // for(i = 0; i < 7; i++) printf("c[i] %s\n", command[i]);
-      commPoint = 0;
       if(strcmp(command[0], "add") == 0) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
             int sysInterval = defaultInterval;
@@ -252,16 +252,25 @@ int main(int argc, char *argv[]) {
 
       if(strcmp(command[0], "listactive") == 0) {
          /* printing system monitor */
-         if(system.shorthandThreadID && system.whenFinished == 0) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
-                       system.shorthandThreadID, "system", ctime(&system.whenStarted),
-                       system.monitorInterval, system.logfile);
+         if(system.shorthandThreadID && (system.whenFinished == 0)) {
+            /* getting rid of of \n */
+            char *temp = ctime(&system.whenStarted);
+            temp[strlen(temp) - 1] = '\0';
+
+            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                    system.shorthandThreadID, "system", temp,
+                    system.monitorInterval, system.logfile);
          }
 
-         if(commandThread.shorthandThreadID && commandThread.whenFinished == 0) {
-               printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
-                       commandThread.shorthandThreadID, "command", ctime(&commandThread.whenStarted),
-                       commandThread.monitorInterval, commandThread.logfile);
+         /* printing command thread */
+         if(commandThread.shorthandThreadID && (commandThread.whenFinished == 0)) {
+            /* getting rid of of \n */
+            char *temp = ctime(&system.whenStarted);
+            temp[strlen(temp) - 1] = '\0';
+
+            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                    commandThread.shorthandThreadID, "command", temp,
+                    commandThread.monitorInterval, commandThread.logfile);
          }
 
          /* printing monitor threads */
@@ -278,7 +287,34 @@ int main(int argc, char *argv[]) {
          continue;
       }
 
+      /* this isn't being reached and I'm confused */
       if(strcmp(command[0], "listcompleted") == 0) {
+         /* printing system monitor */
+         if(system.shorthandThreadID && system.whenFinished) {
+            /* getting rid of of \n */
+            char *temp = ctime(&system.whenStarted);
+            char *temp2 = ctime(&system.whenFinished);
+            temp[strlen(temp) - 1] = '\0';
+            temp[strlen(temp2) - 1] = '\0';
+
+            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Finished: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                    system.shorthandThreadID, "system", temp, temp2,
+                    system.monitorInterval, system.logfile);
+         }
+
+         /* printing command thread */
+         if(commandThread.shorthandThreadID && commandThread.whenFinished) {
+            /* getting rid of of \n */
+            char *temp = ctime(&system.whenStarted);
+            char *temp2 = ctime(&system.whenFinished);
+            temp[strlen(temp) - 1] = '\0';
+            temp[strlen(temp2) - 1] = '\0';
+
+            printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Finished: %s8 | Monitor Interval: %d8 | Log File: %s\n",
+                    commandThread.shorthandThreadID, "command", temp, temp2,
+                    commandThread.monitorInterval, commandThread.logfile);
+         }
+
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].shorthandThreadID != 0 && pids[i].whenFinished) {
                printf("Monitoring Thread ID: %d8 | Type: %s8 | Time Started: %s8 | Time Completed: %s8 | Monitor Interval: %d8 | Log File: %s\n",
