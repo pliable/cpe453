@@ -21,10 +21,11 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <signal.h>
 
 typedef struct {
    int mutexIndex;
-   char logfile[256];
+   char logfile[BUFFER_SIZE];
 } logfileMutexKeyVal;
 
 typedef struct {
@@ -32,11 +33,11 @@ typedef struct {
    pthread_t monitorThreadID;
    int shorthandThreadID;
    FILE *logFP;
-   char pidBeingMonitored[256]; /* "system", "command", or pid */
+   char pidBeingMonitored[BUFFER_SIZE]; /* "system", "command", or pid */
    time_t whenStarted;
    time_t whenFinished;
    int monitorInterval;
-   char logfile[256];
+   char logfile[BUFFER_SIZE];
 } monitor_data;
 
 void getStatData(FILE *logfile);

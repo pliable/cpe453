@@ -1,7 +1,8 @@
 #include "mond.h"
 
 
-pthread_mutex_t m[11];
+pthread_mutex_t m[10];
+logfileMutexKeyVal pairs[10];
 int main(int argc, char *argv[]) {
 
    int checkSystemStats = 0, interval = 0, status;
@@ -16,7 +17,8 @@ int main(int argc, char *argv[]) {
 
 
 
-   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0;
+   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 1, currentPidMon = 0,
+       pairsIndex = 0;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    pthread_t tid;
    void *ret_val;
@@ -29,7 +31,7 @@ int main(int argc, char *argv[]) {
       pids[i].shorthandThreadID = 0;
    }
 
-   for(i = 0; i < 11; i++) {
+   for(i = 0; i < 10; i++) {
       pthread_mutex_init(&m[i], NULL);  //does this actually work?
    }
 
@@ -116,7 +118,13 @@ int main(int argc, char *argv[]) {
                continue;
             }
 
+            /* Add the logfile and mutex to the array thang */
+            strcpy(pairs[pairsIndex].logfile, sysLogfile);
+            pairs[pairsIndex].mutexIndex = pairsIndex;
+            pairsIndex++;
+
             /* launch thread to monitor system shit. */
+            strcpy(system.pidBeingMonitored, "system");
             system.monitorInterval = sysInterval;
             strcpy(system.logfile, sysLogfile);
             system.shorthandThreadID = shorthandMonitorThreadID;
@@ -163,6 +171,7 @@ int main(int argc, char *argv[]) {
                continue;
             }
             /* launch thread to monitor that pid file */
+
             continue;
          }
 
@@ -291,18 +300,25 @@ int main(int argc, char *argv[]) {
          }
 
          if(strcmp(command[1], "-t") == 0) {
-            if((tid = strtol(command[2], NULL, 10)) <= 0) {
+            int sThreadID;
+
+            if((sThreadID = strtol(command[2], NULL, 10)) <= 0) {
                printf("Please indicate a tid to remove after the '-t'\n");
                continue;
             }
 
+            for(i = 0; i < MAX_PIDS; i++) {
+               if(pids[i].shorthandThreadID == sThreadID) {
+                  break;
+               }
+            }
+
             /* cancelling thread */
-            if( (status = pthread_cancel(tid)) == ESRCH) {
+            if( (status = pthread_cancel(pids[i].monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
             }
 
-            /* wait for thread to terminate */
-            if( (status = pthread_join(tid, &ret_val)) != 0) {
+            if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
                switch(status) {
                   case EDEADLK:
                      fprintf(stderr, "Deadlock detected\n");
@@ -317,10 +333,43 @@ int main(int argc, char *argv[]) {
                continue;
             }
          }
+         continue;
       }
       
       if(strcmp(command[0], "kill") == 0) {
-         //do kill stuff
+         for(i = 0; i < MAX_PIDS; i++) {
+            if( strcmp(pids[i].pidBeingMonitored, command[1]) == 0) {
+               pthread_cancel(pids[i].monitorThreadID);
+
+               if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
+                  switch(status) {
+                     case EDEADLK:
+                        fprintf(stderr, "Deadlock detected\n");
+                        break;
+                     case EINVAL:
+                        fprintf(stderr, "Thread not joinable or another thread is waiting to join\n");
+                        break;
+                     case ESRCH:
+                        fprintf(stderr, "No thread could be found\n");
+                        break;
+                  }
+               }
+            }
+         }
+
+         if(i == MAX_PIDS - 1) {
+            fprintf(stderr, "PID does not exist\n");
+            continue;
+         }
+
+         long local_pid = strtol(command[1], NULL, 10);
+
+         if(local_pid == 0) {
+            fprintf(stderr, "Malformed PID\n");
+            continue;
+         }
+
+         kill(local_pid, SIGKILL);
       }
 
       if(strcmp(command[0], "exit") == 0) {
@@ -333,8 +382,6 @@ int main(int argc, char *argv[]) {
                if(ans == 'y') {
                   /* closing system logfile */
                   fclose(system.logFP);
-                  /* closing command logfile */
-                  fclose(commandThread.logFP);
 
                   for(i = 0; i < MAX_PIDS; i++) {
                      /* ignoring ret vals since closing anyway */
@@ -343,23 +390,19 @@ int main(int argc, char *argv[]) {
 
                   /* closing threads */
 
+                  /* closing system */
                   pthread_cancel(system.monitorThreadID);
-                  /*check here too maybe*/
                   pthread_join(system.monitorThreadID, &ret_val);
-                  
+                 
+                  /* closing command thread */
                   pthread_cancel(commandThread.monitorThreadID);
-                  /*check here too maybe*/
                   pthread_join(commandThread.monitorThreadID, &ret_val);
 
+                  /* closing monitor threads */
                   for(i = 0; i < MAX_PIDS; i++) {
                      /*intentionally ignoring ret value here because we 
                        want all thread to be killed anyway */
                      pthread_cancel(pids[i].monitorThreadID);
-                  }
-
-                  /* waiting for closed threads */
-
-                  for(i = 0; i < MAX_PIDS; i++) {
                      if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
                         switch(status) {
                            case EDEADLK:
@@ -374,7 +417,6 @@ int main(int argc, char *argv[]) {
                         }
                      }
                   }
-
                   exit(EXIT_SUCCESS);
                } else {
                   continue;
@@ -448,6 +490,7 @@ void *systemMonitorHelper(void *ptr) {
    FILE *log;
    time_t t;
    char *ct;
+   int y, whichMutexToUse = 0;
    monitor_data *sys = (monitor_data *) ptr;
    //printf("%02x\n", (unsigned)sys->monitorThreadID);
    //printf("%s\n", sys->pidBeingMonitored);
@@ -457,24 +500,36 @@ void *systemMonitorHelper(void *ptr) {
    
    //sys monitor always runs until exit  (put a while(1) here)
 
-   //acquire lock
-  // pthread_mutex_lock(&mutex);
-   sys->logFP = fopen(sys->logfile, "w");
-   time(&t);
-   ct = ctime(&t);
-   ct[strlen(ct) - 1] = ']';
-   fprintf(sys->logFP, "[%s ", ct);
-   fprintf(sys->logFP, "System  ");
 
-   getStatData(sys->logFP);
-   getMeminfoData(sys->logFP);
-   getLoadavgData(sys->logFP);
-   getDiskstatsData(sys->logFP);
-   fprintf(sys->logFP, "\n");
-   fclose(sys->logFP);
-   usleep(sys->monitorInterval);
-   //release lock
-  // pthread_mutex_unlock(&mutex);
+   /* Match up the logfile with the mutexxx */
+   for(y = 0; y < 10; y++) {
+      if(strcmp(sys->logfile, pairs[y].logfile) == 0) {
+         whichMutexToUse = pairs[y].mutexIndex;
+         break;
+      } 
+   }
+   //set cancel type
+   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+   while(1) {
+      pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+      pthread_mutex_lock(&m[whichMutexToUse]);
+      sys->logFP = fopen(sys->logfile, "a");
+      time(&t);
+      ct = ctime(&t);
+      ct[strlen(ct) - 1] = ']';
+      fprintf(sys->logFP, "[%s ", ct);
+      fprintf(sys->logFP, "System  ");
+
+      getStatData(sys->logFP);
+      getMeminfoData(sys->logFP);
+      getLoadavgData(sys->logFP);
+      getDiskstatsData(sys->logFP);
+      fprintf(sys->logFP, "\n");
+      fclose(sys->logFP);
+      pthread_mutex_unlock(&m[whichMutexToUse]);
+      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+      usleep(sys->monitorInterval);
+   }
 }
 
 void getStatData(FILE *logfile) {
