@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
             command[i][n] = '\0';
          }
       }
+      printf("Command: ");
       fgets(input, BUFFER_SIZE, stdin);
       token = strtok(input, " \n");
       while(token != NULL) {
