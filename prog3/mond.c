@@ -533,7 +533,6 @@ int main(int argc, char *argv[]) {
             for(i = 0; i < MAX_PIDS; i++) {
                if(pids[i].shorthandThreadID) {
                   /* closing log file */
-                  printf("pid[%d] closed\n", i);
 
                   /*intentionally ignoring ret value here because we 
                     want all thread to be killed anyway */
