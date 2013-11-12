@@ -48,4 +48,5 @@ void getLoadavgData(FILE *logfile);
 void getPidStatData(FILE **logfile, FILE **pidstat);
 void getPidStatmData(FILE **logfile, FILE **pidstatm);
 void *pidMonitorHelper(void *ptr);
+void *execMonitorHelper(void *ptr);
 void *systemMonitorHelper(void *ptr);

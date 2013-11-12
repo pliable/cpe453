@@ -4,22 +4,9 @@
 pthread_mutex_t m[10];
 logfileMutexKeyVal pairs[10];
 int main(int argc, char *argv[]) {
-
-   int checkSystemStats = 0, interval = 0, status;
-   char procStat[25], procStatm[25];
-   pid_t pid = 0;
-   time_t t;
-   char *executable, *curTime;
-   FILE *logFile, *pidstatm, *pidstat;
-
-
-
-
-
-
    /* starting shorthandMonitorThreadID at 2 to reserve 1 for the command thread */
    int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 2, currentPidMon = 0,
-       pairsIndex = 0;
+       pairsIndex = 0, status;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    /* use these with ctime_r; can't use ctime back to back because 
       it uses a statically allocated buffer*/
@@ -288,7 +275,7 @@ int main(int argc, char *argv[]) {
                pids[i].shorthandThreadID = shorthandMonitorThreadID++;
                time(&pids[i].whenStarted);
                /* launch thread to monitor system shit. */
-               pthread_create(&pids[i].monitorThreadID, NULL, &pidMonitorHelper, (void *)&pids[i]);
+               pthread_create(&pids[i].monitorThreadID, NULL, &execMonitorHelper, (void *)&pids[i]);
 
                continue;
 
@@ -424,6 +411,7 @@ int main(int argc, char *argv[]) {
                }
                continue;
             }
+            continue;
          }
 
          if(strcmp(command[1], "-t") == 0) {
@@ -460,8 +448,8 @@ int main(int argc, char *argv[]) {
                }
 
                if(!(strcmp(pids[j].logfile, pids[i].logfile) == 0)) {
-                  printf("this is a future test printf to ensure this isn't running billions of times\n");
-                  fclose(pids[i].logFP);
+               //   printf("this is a future test printf to ensure this isn't running billions of times\n");
+               //   fclose(pids[i].logFP);
                   break;
                }
             }
@@ -530,7 +518,8 @@ int main(int argc, char *argv[]) {
       }
 
       if(strcmp(command[0], "exit") == 0) {
-         char ans;
+         char ans = 'h';
+
          for(i = 0; i < MAX_PIDS; i++) {
             if(pids[i].shorthandThreadID) {
                printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
@@ -539,13 +528,18 @@ int main(int argc, char *argv[]) {
             }
          }
 
+         if(system.shorthandThreadID && ans == 'h') {
+            printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
+            scanf("%c", &ans);
+         }
+
          if(ans == 'y' || i == MAX_PIDS) {
             /* closing threads */
 
             /* closing system monitor if open */
             if(system.shorthandThreadID) {
                /* closing system logfile */
-               fclose(system.logFP);
+               //fclose(system.logFP);
                pthread_cancel(system.monitorThreadID);
                pthread_join(system.monitorThreadID, &ret_val);
             }
@@ -554,7 +548,8 @@ int main(int argc, char *argv[]) {
             for(i = 0; i < MAX_PIDS; i++) {
                if(pids[i].shorthandThreadID) {
                   /* closing log file */
-                  fclose(pids[i].logFP);
+                  printf("pid[%d] closed\n", i);
+                  //fclose(pids[i].logFP);
 
                   /*intentionally ignoring ret value here because we 
                     want all thread to be killed anyway */
@@ -586,58 +581,71 @@ int main(int argc, char *argv[]) {
       }
    }
 
+   return 0;
+}
 
+void *execMonitorHelper(void *ptr) {
+   time_t t;
+   pid_t pid; 
+   char *ct, procStat[25], procStatm[25];
+   int y, whichMutexToUse = 0, status;
+   FILE *pidstatm, *pidstat;
+   monitor_data *sys = (monitor_data *) ptr;
 
+   //printf("%02x\n", (unsigned)sys->monitorThreadID);
+   //printf("%s\n", sys->pidBeingMonitored);
+   //printf("%s\n", ctime(&sys->whenStarted));
+   //printf("%d\n", sys->monitorInterval);
+   //printf("%s\n", sys->logfile);
 
-   pid = fork();
-   if(pid == 0) {
-      execlp(executable, executable, NULL);
-   }
-   else {
-      /* Format the dirs for the pid specific system stats  */
-      sprintf(procStat, "/proc/%d/stat", pid);
-      sprintf(procStatm, "/proc/%d/statm", pid);
-      /* The main loop to read the system stats every <interval> ms */
-      while((waitpid(pid, &status, WNOHANG)) == 0) { 
-         /* Open all the files we need */
-         pidstatm = fopen(procStatm, "r");
-         pidstat = fopen(procStat, "r");
-         if(pidstat == NULL || pidstatm == NULL) {
-            break;
-         }
-         
-         /* get the current time */
-         time(&t);
-         curTime = ctime(&t);
-         curTime[strlen(curTime) - 1] = ']';
-
-         /* Collect our data */
-         if(checkSystemStats) {
-            fprintf(logFile, "[%s ", curTime);
-            fprintf(logFile, "System  ");
-
-            getStatData(logFile);
-            getMeminfoData(logFile);
-            getLoadavgData(logFile);
-            getDiskstatsData(logFile);
-            fprintf(logFile, "\n");
-         }
-         fprintf(logFile, "[%s ", curTime);
-         fprintf(logFile, "Process(%d)  ", pid);
-
-         getPidStatData(&logFile, &pidstat);
-         getPidStatmData(&logFile, &pidstatm);//wtf how do pass FILE pointers in C?
-
-         /* Close everything  */
-         fclose(pidstatm);
-         fclose(pidstat);
-         fprintf(logFile, "\n");
-         usleep(interval);
+   pid = (pid_t)strtoimax(sys->pidBeingMonitored, NULL, 10);
+   /* Match up the logfile with the mutexxx */
+   for(y = 0; y < 10; y++) {
+      if(strcmp(sys->logfile, pairs[y].logfile) == 0) {
+         whichMutexToUse = pairs[y].mutexIndex;
+         break;
       }
    }
-   fclose(logFile);
+   sprintf(procStat, "/proc/%d/stat", pid);
+   sprintf(procStatm, "/proc/%d/statm", pid);
+   //set cancel type
+   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+   //wait for the pid it is being monitored to end
+   while((waitpid(pid, &status, WNOHANG)) == 0) {
+   //while(1) {
+      /* attain the lock */
+      pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+      pthread_mutex_lock(&m[whichMutexToUse]);
 
-   return 0;
+      /* Open everything */
+      sys->logFP = fopen(sys->logfile, "a");
+      pidstatm = fopen(procStatm, "r");
+      pidstat = fopen(procStat, "r");
+      if(pidstat == NULL || pidstatm == NULL) {
+         printf("Process no longer exists. Exiting process monitor thread.\n");
+         fclose(sys->logFP);
+         break;
+      }
+
+      /* Begin statistic tracking */
+      time(&t);
+      ct = ctime(&t);
+      ct[strlen(ct) - 1] = ']';
+      fprintf(sys->logFP, "[%s ", ct);
+      fprintf(sys->logFP, "Process  ");
+      getPidStatData(&sys->logFP, &pidstat);
+      getPidStatmData(&sys->logFP, &pidstatm);//wtf how do pass FILE pointers in C?
+
+      /* Close everything  */
+      fclose(pidstatm);
+      fclose(pidstat);
+      fprintf(sys->logFP, "\n");
+      fclose(sys->logFP);
+
+      pthread_mutex_unlock(&m[whichMutexToUse]);
+      pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+      usleep(sys->monitorInterval);
+   }
 }
 
 void *pidMonitorHelper(void *ptr) {
@@ -667,8 +675,8 @@ void *pidMonitorHelper(void *ptr) {
    //set cancel type
    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
    //wait for the pid it is being monitored to end
-   while((waitpid(pid, &status, WNOHANG)) == 0) {
-      printf("hittin dat wait loop yo\n");
+   //while((waitpid(pid, &status, WNOHANG)) == 0) {
+   while(1) {
       /* attain the lock */
       pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
       pthread_mutex_lock(&m[whichMutexToUse]);
