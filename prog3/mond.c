@@ -471,11 +471,11 @@ int main(int argc, char *argv[]) {
       }
       
       if(strcmp(command[0], "kill") == 0) {
-
+         int sonOfNasty = 0;
          for(i = 0; i < MAX_PIDS; i++) {
             /* kill all threads associated with process */
             if( strcmp(pids[i].pidBeingMonitored, command[1]) == 0) {
-               command[1][strlen(command[1]) - 1] = '\0';
+               pids[i].shorthandThreadID = 0;
                pthread_cancel(pids[i].monitorThreadID);
 
                if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
@@ -491,18 +491,21 @@ int main(int argc, char *argv[]) {
                         break;
                   }
                }
+               sonOfNasty = 1;
             }
          }
 
          long local_pid = strtol(command[1], NULL, 10);
 
-         if(i == MAX_PIDS || local_pid == 0) {
+         //if(i == MAX_PIDS || local_pid == 0) {
+           if(!sonOfNasty || local_pid == 0) {
             fprintf(stderr, "PID does not exist or is malformed\n");
             continue;
          }
 
          /* kill process */
          kill(local_pid, SIGKILL);
+         continue;
       }
 
       if(strcmp(command[0], "exit") == 0) {
