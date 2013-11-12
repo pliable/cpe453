@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
    }
 
    for(i = 0; i < 10; i++) {
-      pthread_mutex_init(&m[i], NULL);  //does this actually work?
+      pthread_mutex_init(&m[i], NULL);  
    }
 
    /******************* SYSTEM THREAD ***************************/
@@ -45,17 +45,8 @@ int main(int argc, char *argv[]) {
    commandThread.monitorInterval = 0;
    strcpy(commandThread.logfile ,"N/A");
 
-   /* write and set cleanup functions for everythign */
-
-   /* initialization */
    /* writing default log file name of "default.log" */
    strncpy(defaultLogfile, "default.log", BUFFER_SIZE);
-   /*
-   for(i = 0; i < BUFFER_SIZE; i++) {
-      defaultLogfile[i] = '\0';
-   }
-   */
-
 
    while(1) {
       /* initialize everything */
@@ -77,7 +68,7 @@ int main(int argc, char *argv[]) {
          commPoint++;
          token = strtok(NULL, " \n");
       }
-         // for(i = 0; i < 7; i++) printf("c[i] %s\n", command[i]);
+
       if(strcmp(command[0], "add") == 0) {
          if(strcmp(command[1], "-s") == 0) { /* System statistics */
             int sysInterval = defaultInterval;
@@ -288,7 +279,7 @@ int main(int argc, char *argv[]) {
 
             continue;
          }
-         else {//this else always getting triggered. wts
+         else {/* Use else if next time */
             printf("Usage: add <-s || -p pID || -e executable> [-i interval] [-f logfile]\n");
             continue;
          }
@@ -571,6 +562,11 @@ int main(int argc, char *argv[]) {
    return 0;
 }
 
+/* Critical Section: We are accessing files that may be written to by multiple
+ * threads. These must be opened in the critical section to ensure the threads
+ * are seeked to the correct point.
+ * */
+
 void *execMonitorHelper(void *ptr) {
    time_t t;
    pid_t pid; 
@@ -578,12 +574,6 @@ void *execMonitorHelper(void *ptr) {
    int y, whichMutexToUse = 0, status;
    FILE *pidstatm, *pidstat;
    monitor_data *sys = (monitor_data *) ptr;
-
-   //printf("%02x\n", (unsigned)sys->monitorThreadID);
-   //printf("%s\n", sys->pidBeingMonitored);
-   //printf("%s\n", ctime(&sys->whenStarted));
-   //printf("%d\n", sys->monitorInterval);
-   //printf("%s\n", sys->logfile);
 
    pid = (pid_t)strtoimax(sys->pidBeingMonitored, NULL, 10);
    /* Match up the logfile with the mutexxx */
@@ -595,16 +585,19 @@ void *execMonitorHelper(void *ptr) {
    }
    sprintf(procStat, "/proc/%d/stat", pid);
    sprintf(procStatm, "/proc/%d/statm", pid);
-   //set cancel type
+
    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-   //wait for the pid it is being monitored to end
    while((waitpid(pid, &status, WNOHANG)) == 0) {
-   //while(1) {
       /* attain the lock */
       pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+
+      /* We use a mutex because only one thread may write to a file at a time */
       pthread_mutex_lock(&m[whichMutexToUse]);
 
       /* Open everything */
+      /* Whenever writing to a shared file, you must make sure only 1 thread
+       * is writing to it at a time else you're output will be messy
+       * */
       sys->logFP = fopen(sys->logfile, "a");
       pidstatm = fopen(procStatm, "r");
       pidstat = fopen(procStat, "r");
@@ -629,6 +622,11 @@ void *execMonitorHelper(void *ptr) {
       fprintf(sys->logFP, "\n");
       fclose(sys->logFP);
 
+      /* Performance Concerns: Opening and closing files over and over again
+       * makes the program slower, but it is necessary to ensure data is not
+       * overwritten or race conditions do not occur. 
+       * */
+
       pthread_mutex_unlock(&m[whichMutexToUse]);
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
@@ -636,6 +634,10 @@ void *execMonitorHelper(void *ptr) {
    return 0;
 }
 
+/* Critical Section: We are accessing files that may be written to by multiple
+ * threads. These must be opened in the critical section to ensure the threads
+ * are seeked to the correct point.
+ * */
 void *pidMonitorHelper(void *ptr) {
    time_t t;
    pid_t pid; 
@@ -643,12 +645,6 @@ void *pidMonitorHelper(void *ptr) {
    int y, whichMutexToUse = 0;
    FILE *pidstatm, *pidstat;
    monitor_data *sys = (monitor_data *) ptr;
-
-   //printf("%02x\n", (unsigned)sys->monitorThreadID);
-   //printf("%s\n", sys->pidBeingMonitored);
-   //printf("%s\n", ctime(&sys->whenStarted));
-   //printf("%d\n", sys->monitorInterval);
-   //printf("%s\n", sys->logfile);
 
    pid = (pid_t)strtoimax(sys->pidBeingMonitored, NULL, 10);
    /* Match up the logfile with the mutexxx */
@@ -660,16 +656,18 @@ void *pidMonitorHelper(void *ptr) {
    }
    sprintf(procStat, "/proc/%d/stat", pid);
    sprintf(procStatm, "/proc/%d/statm", pid);
-   //set cancel type
+
    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-   //wait for the pid it is being monitored to end
-   //while((waitpid(pid, &status, WNOHANG)) == 0) {
    while(1) {
       /* attain the lock */
       pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+      /* We use a mutex because only one thread may write to a file at a time */
       pthread_mutex_lock(&m[whichMutexToUse]);
 
       /* Open everything */
+      /* Whenever writing to a shared file, you must make sure only 1 thread
+       * is writing to it at a time else you're output will be messy
+       * */
       sys->logFP = fopen(sys->logfile, "a");
       pidstatm = fopen(procStatm, "r");
       pidstat = fopen(procStat, "r");
@@ -693,6 +691,10 @@ void *pidMonitorHelper(void *ptr) {
       fprintf(sys->logFP, "\n");
       fclose(sys->logFP);
 
+      /* Performance Concerns: Opening and closing files over and over again
+       * makes the program slower, but it is necessary to ensure data is not
+       * overwritten or race conditions do not occur. 
+       * */
       pthread_mutex_unlock(&m[whichMutexToUse]);
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
@@ -700,19 +702,15 @@ void *pidMonitorHelper(void *ptr) {
    return 0;
 }
 
+/* Critical Section: We are accessing files that may be written to by multiple
+ * threads. These must be opened in the critical section to ensure the threads
+ * are seeked to the correct point.
+ * */
 void *systemMonitorHelper(void *ptr) {
    time_t t;
    char *ct;
    int y, whichMutexToUse = 0;
    monitor_data *sys = (monitor_data *) ptr;
-   //printf("%02x\n", (unsigned)sys->monitorThreadID);
-   //printf("%s\n", sys->pidBeingMonitored);
-   //printf("%s\n", ctime(&sys->whenStarted));
-   //printf("%d\n", sys->monitorInterval);
-   //printf("%s\n", sys->logfile);
-   
-   //sys monitor always runs until exit  (put a while(1) here)
-
 
    /* Match up the logfile with the mutexxx */
    for(y = 0; y < 10; y++) {
@@ -721,13 +719,16 @@ void *systemMonitorHelper(void *ptr) {
          break;
       } 
    }
-   //set cancel type
    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
    while(1) {
       pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+      /* We use a mutex because only one thread may write to a file at a time */
       pthread_mutex_lock(&m[whichMutexToUse]);
       sys->logFP = fopen(sys->logfile, "a");
 
+      /* Whenever writing to a shared file, you must make sure only 1 thread
+       * is writing to it at a time else you're output will be messy
+       * */
       time(&t);
       ct = ctime(&t);
       ct[strlen(ct) - 1] = ']';
@@ -742,6 +743,10 @@ void *systemMonitorHelper(void *ptr) {
       fprintf(sys->logFP, "\n");
       fclose(sys->logFP);
 
+      /* Performance Concerns: Opening and closing files over and over again
+       * makes the program slower, but it is necessary to ensure data is not
+       * overwritten or race conditions do not occur. 
+       * */
       pthread_mutex_unlock(&m[whichMutexToUse]);
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
@@ -954,7 +959,6 @@ void getLoadavgData(FILE *logfile) {
 }
 
 void getPidStatData(FILE **logfile, FILE **pidstat) {
-   //rss here prints a space afer
    char line[BUFFER_SIZE], *format;
    int field = 0;
    
