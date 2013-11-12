@@ -471,9 +471,11 @@ int main(int argc, char *argv[]) {
       }
       
       if(strcmp(command[0], "kill") == 0) {
+
          for(i = 0; i < MAX_PIDS; i++) {
             /* kill all threads associated with process */
             if( strcmp(pids[i].pidBeingMonitored, command[1]) == 0) {
+               command[1][strlen(command[1]) - 1] = '\0';
                pthread_cancel(pids[i].monitorThreadID);
 
                if( (status = pthread_join(pids[i].monitorThreadID, &ret_val)) != 0) {
