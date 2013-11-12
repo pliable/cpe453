@@ -674,7 +674,6 @@ void *pidMonitorHelper(void *ptr) {
       pidstatm = fopen(procStatm, "r");
       pidstat = fopen(procStat, "r");
       if(pidstat == NULL || pidstatm == NULL) {
-         printf("Process no longer exists. Exiting process monitor thread.\n");
          fclose(sys->logFP);
          break;
       }
