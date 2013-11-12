@@ -256,13 +256,13 @@ int main(int argc, char *argv[]) {
                pairsIndex++;
 
                /* converting long to string */
-               int n = snprintf(NULL, 0, "%dl", new_pid);
+               int n = snprintf(NULL, 0, "%ld", (long)new_pid);
                if(n < 0) {
                   printf("snprintf fail");
                   continue;
                }
                char buf[n + 1];
-               int c = snprintf(buf, n + 1, "%dl", new_pid);
+               int c = snprintf(buf, n + 1, "%ld", (long)new_pid);
                if(c < 0) {
                   printf("snprintf fail again");
                   continue;
