@@ -439,19 +439,6 @@ int main(int argc, char *argv[]) {
 
             /* checking if anything else is writing to same log file, and if
              there isn't, close it */
-            int j;
-            for(j = 0; j < MAX_PIDS; j++) {
-               /* dirty check to skip over checking itself */
-               if(i == j) {
-                  continue;
-               }
-
-               if(!(strcmp(pids[j].logfile, pids[i].logfile) == 0)) {
-               //   printf("this is a future test printf to ensure this isn't running billions of times\n");
-               //   fclose(pids[i].logFP);
-                  break;
-               }
-            }
 
             time(&pids[i].whenFinished);
 
@@ -538,7 +525,6 @@ int main(int argc, char *argv[]) {
             /* closing system monitor if open */
             if(system.shorthandThreadID) {
                /* closing system logfile */
-               //fclose(system.logFP);
                pthread_cancel(system.monitorThreadID);
                pthread_join(system.monitorThreadID, &ret_val);
             }
@@ -548,7 +534,6 @@ int main(int argc, char *argv[]) {
                if(pids[i].shorthandThreadID) {
                   /* closing log file */
                   printf("pid[%d] closed\n", i);
-                  //fclose(pids[i].logFP);
 
                   /*intentionally ignoring ret value here because we 
                     want all thread to be killed anyway */
