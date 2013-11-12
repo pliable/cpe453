@@ -5,7 +5,7 @@ pthread_mutex_t m[10];
 logfileMutexKeyVal pairs[10];
 int main(int argc, char *argv[]) {
    /* starting shorthandMonitorThreadID at 2 to reserve 1 for the command thread */
-   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 2, currentPidMon = 0,
+   int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 2,
        pairsIndex = 0, status;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    /* use these with ctime_r; can't use ctime back to back because 
@@ -497,8 +497,7 @@ int main(int argc, char *argv[]) {
 
          long local_pid = strtol(command[1], NULL, 10);
 
-         //if(i == MAX_PIDS || local_pid == 0) {
-           if(!sonOfNasty || local_pid == 0) {
+         if(!sonOfNasty || local_pid == 0) {
             fprintf(stderr, "PID does not exist or is malformed\n");
             continue;
          }
@@ -634,13 +633,14 @@ void *execMonitorHelper(void *ptr) {
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
    }
+   return 0;
 }
 
 void *pidMonitorHelper(void *ptr) {
    time_t t;
    pid_t pid; 
    char *ct, procStat[25], procStatm[25];
-   int y, whichMutexToUse = 0, status;
+   int y, whichMutexToUse = 0;
    FILE *pidstatm, *pidstat;
    monitor_data *sys = (monitor_data *) ptr;
 
@@ -697,6 +697,7 @@ void *pidMonitorHelper(void *ptr) {
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
    }
+   return 0;
 }
 
 void *systemMonitorHelper(void *ptr) {
@@ -745,6 +746,7 @@ void *systemMonitorHelper(void *ptr) {
       pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
       usleep(sys->monitorInterval);
    }
+   return 0;
 }
 
 void getStatData(FILE *logfile) {
