@@ -397,7 +397,6 @@ int main(int argc, char *argv[]) {
       }
 
       if(strcmp(command[0], "remove") == 0) {
-         int status;
 
          if(strcmp(command[1], "-s") == 0) {
             system.shorthandThreadID = 0;
