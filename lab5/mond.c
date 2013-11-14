@@ -48,6 +48,10 @@ int main(int argc, char *argv[]) {
    /* writing default log file name of "default.log" */
    strncpy(defaultLogfile, "default.log", BUFFER_SIZE);
 
+  /* Do webmond stuff here */
+  monitor_data htmlThreadInfo;
+  pthread_create(&htmlThreadInfo.monitorThreadID, NULL, &htmlHelper, (void *) &system);
+
    while(1) {
       /* initialize everything */
       for(i = 0; i < 7; i++) {
