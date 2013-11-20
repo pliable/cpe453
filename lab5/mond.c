@@ -593,18 +593,18 @@ void *htmlHelper(void *ptr) {
 
       //listactive
       //write listactive header shit
-      fprintf(htmlFile, "<h3>Active threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval (&#956sec)</td>\n\t<td>log file</td>\n</tr>\n\n");
+      fprintf(htmlFile, "<h3>Active threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval (&#956sec)</td>\n\t<td>log file</td>\n<td>speed</td></tr>\n\n");
 
       //actual code ffrom mond
       ctime_r(&commandThread.whenStarted, ctime_buf);
       ctime_buf[strlen(ctime_buf) - 1] = '\0';
-      fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
+      fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n<td><img src=\"dancing_snoop/tmp-0.gif\" id=\"SnoopCommander\"></td></tr>\n\n", 
           commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf, commandThread.monitorInterval, commandThread.logfile);
+      fprintf(htmlFile, "<script>\nfunction aniSnoop(){\nvar which = 0;\nconsole.log(\"ran\");\nwhich=which+1;\nif(which>57){ which=0;}\ndocument.getElementById(\"SnoopCommander\").src=\"dancing_snoop/tmp-\" + which + \".gif\";\nsetTimeout(\"aniSnoop\", 1);}</script>");
 
 
       /* printing system monitor */
       if(system_mon.shorthandThreadID && (system_mon.whenFinished == 0)) {
-         printf("system shit: %d %s\n", system_mon.shorthandThreadID, system_mon.logfile);
          /* getting rid of of \n */
          ctime_r(&system_mon.whenStarted, ctime_buf);
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
@@ -624,7 +624,8 @@ void *htmlHelper(void *ptr) {
 
          } 
       }
-            
+           
+     fprintf(htmlFile, "</table>");
 
       //listcompleted
 
@@ -659,6 +660,7 @@ void *htmlHelper(void *ptr) {
             break;
          }
       }
+      fprintf(htmlFile, "</table></html>");
 
       /* Put other useful statistics here */
 
