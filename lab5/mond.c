@@ -626,7 +626,7 @@ void *htmlHelper(void *ptr) {
       //listcompleted
 
       //write html header
-      fprintf(htmlFile, "<h3>Active threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval   (&#956sec)</td>\n\t<td>log file</td>\n\t<td>time finished</td>\n</tr>\n\n");
+      fprintf(htmlFile, "<h3>Completed threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval   (&#956sec)</td>\n\t<td>log file</td>\n\t<td>time finished</td>\n</tr>\n\n");
 
       //actual mond code 
       if(system_mon.whenFinished) {
