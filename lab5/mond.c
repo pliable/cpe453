@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
             system_mon.shorthandThreadID = shorthandMonitorThreadID;
             shorthandMonitorThreadID++;
             time(&system_mon.whenStarted); /* get rid of extra \n */
-            pthread_create(&system_mon.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
+            pthread_create(&system_mon.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system_mon);
 
             continue;
          }
@@ -601,8 +601,10 @@ void *htmlHelper(void *ptr) {
       fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
           commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf, commandThread.monitorInterval, commandThread.logfile);
 
+
       /* printing system monitor */
       if(system_mon.shorthandThreadID && (system_mon.whenFinished == 0)) {
+         printf("system shit: %d %s\n", system_mon.shorthandThreadID, system_mon.logfile);
          /* getting rid of of \n */
          ctime_r(&system_mon.whenStarted, ctime_buf);
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
