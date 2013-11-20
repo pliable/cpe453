@@ -578,10 +578,11 @@ void *htmlHelper(void *ptr) {
    /* ptr is a pointer to a webmond_data struct, which contains pointers to the system_mon
     * and command threads */
    char *htmlName = html_name;
-   FILE *htmlFile = fopen(htmlName, "w");
+   FILE *htmlFile;
    int i;
 
    while(1) {
+      htmlFile = fopen(htmlName, "w");
       //write the header
       fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content=\"%d\">\n</head>", html_refresh_rate);
       fprintf(htmlFile, "<body>\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Fall 2013 </p>\n\n");
