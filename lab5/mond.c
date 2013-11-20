@@ -584,7 +584,7 @@ void *htmlHelper(void *ptr) {
    while(1) {
       //write the header
       fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content=\"%d\">\n</head>", html_refresh_rate);
-      fprintf(htmlFile, "<body>\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Winter 2012 | <a href=\"http://www.csc.calpoly.edu/~foaad\">Prof. Foaad Khosmood</a></p>\n\n");
+      fprintf(htmlFile, "<body>\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Fall 2013 </p>\n\n");
 
       fprintf(htmlFile, "<h3>Settings</h3>\n<ul>\n\t<li>webmon refresh rate = %d second(s)</li>\n\t<li>html refresh rate = %d seconds</li>\n</ul>\n\n", interval_seconds, html_refresh_rate); /* change refresh rate to 5d */
       //write values into headure using fprintf w/ buncha %s
