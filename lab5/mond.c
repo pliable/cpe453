@@ -4,20 +4,25 @@
 pthread_mutex_t m[10];
 logfileMutexKeyVal pairs[10];
 monitor_data pids[MAX_PIDS];/* 10 for pid/executable monitoring */
-monitor_data system; /* System monitor thread information */
+monitor_data system_mon; /* System monitor thread information */
 monitor_data commandThread; /* "Data" for command thread */
+/* use these with ctime_r; can't use ctime back to back because 
+   it uses a statically allocated buffer*/
+char ctime_buf[BUFFER_SIZE];
+char ctime_buf2[BUFFER_SIZE];
+char *html_name;
+int interval_seconds, html_refresh_rate;
 
 int main(int argc, char *argv[]) {
    /* starting shorthandMonitorThreadID at 2 to reserve 1 for the command thread */
    int commPoint = 0, i, n, defaultInterval = -1, shorthandMonitorThreadID = 2,
        pairsIndex = 0, status;
    /* for printing purposes, remember that pthread_t is an unsigned long int */
-   /* use these with ctime_r; can't use ctime back to back because 
-      it uses a statically allocated buffer*/
-   char ctime_buf[BUFFER_SIZE];
-   char ctime_buf2[BUFFER_SIZE];
    void *ret_val;
    char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
+   interval_seconds = strtol(argv[1], NULL, 10);
+   html_refresh_rate = strtol(argv[2], NULL, 10);
+   html_name = argv[3];
 
 
    /* initializing vars for future checking purposes */
@@ -31,11 +36,11 @@ int main(int argc, char *argv[]) {
       pthread_mutex_init(&m[i], NULL);  
    }
 
-   /******************* SYSTEM THREAD ***************************/
+   /******************* system_mon THREAD ***************************/
 
-   system.shorthandThreadID = 0;
-   system.whenFinished = 0;
-   strcpy(system.pidBeingMonitored, "system");
+   system_mon.shorthandThreadID = 0;
+   system_mon.whenFinished = 0;
+   strcpy(system_mon.pidBeingMonitored, "system");
 
    /****************** COMMAND THREAD **************************/
 
@@ -51,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   /* Do webmond stuff here */
   monitor_data htmlThreadInfo;
-  pthread_create(&htmlThreadInfo.monitorThreadID, NULL, &htmlHelper, (void *) &system);
+  pthread_create(&htmlThreadInfo.monitorThreadID, NULL, &htmlHelper, (void *) &system_mon);
 
    while(1) {
       /* initialize everything */
@@ -75,11 +80,11 @@ int main(int argc, char *argv[]) {
       }
 
       if(strcmp(command[0], "add") == 0) {
-         if(strcmp(command[1], "-s") == 0) { /* System statistics */
+         if(strcmp(command[1], "-s") == 0) { /* system_mon statistics */
             int sysInterval = defaultInterval;
             char *sysLogfile = defaultLogfile;
-            /* if system is being added again, resetting when finished as well */
-            system.whenFinished = 0;
+            /* if system_mon is being added again, resetting when finished as well */
+            system_mon.whenFinished = 0;
             if(strcmp(command[2], "-i") == 0) { /* interval given */
                if((sysInterval = strtol(command[3], NULL, 10)) <= 0) {
                   printf("Please put an actual number for the interval after '-i'.\n");
@@ -109,8 +114,8 @@ int main(int argc, char *argv[]) {
                printf("A default logfile was not set, supply a value for a logfile\n");
                continue;
             }
-            if(system.shorthandThreadID != 0) {
-               printf("There is already a thread monitoring system statistics.\n");
+            if(system_mon.shorthandThreadID != 0) {
+               printf("There is already a thread monitoring system_mon statistics.\n");
                continue;
             }
 
@@ -119,14 +124,14 @@ int main(int argc, char *argv[]) {
             pairs[pairsIndex].mutexIndex = pairsIndex;
             pairsIndex++;
 
-            /* launch thread to monitor system shit. */
-            strcpy(system.pidBeingMonitored, "system");
-            system.monitorInterval = sysInterval;
-            strcpy(system.logfile, sysLogfile);
-            system.shorthandThreadID = shorthandMonitorThreadID;
+            /* launch thread to monitor system_mon shit. */
+            strcpy(system_mon.pidBeingMonitored, "system");
+            system_mon.monitorInterval = sysInterval;
+            strcpy(system_mon.logfile, sysLogfile);
+            system_mon.shorthandThreadID = shorthandMonitorThreadID;
             shorthandMonitorThreadID++;
-            time(&system.whenStarted); /* get rid of extra \n */
-            pthread_create(&system.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
+            time(&system_mon.whenStarted); /* get rid of extra \n */
+            pthread_create(&system_mon.monitorThreadID, NULL, &systemMonitorHelper, (void *) &system);
 
             continue;
          }
@@ -270,7 +275,7 @@ int main(int argc, char *argv[]) {
                strcpy(pids[i].logfile, execLogfile);
                pids[i].shorthandThreadID = shorthandMonitorThreadID++;
                time(&pids[i].whenStarted);
-               /* launch thread to monitor system shit. */
+               /* launch thread to monitor system_mon shit. */
                pthread_create(&pids[i].monitorThreadID, NULL, &execMonitorHelper, (void *)&pids[i]);
 
                continue;
@@ -321,15 +326,15 @@ int main(int argc, char *argv[]) {
                  commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf,
                  commandThread.monitorInterval, commandThread.logfile);
 
-         /* printing system monitor */
-         if(system.shorthandThreadID && (system.whenFinished == 0)) {
+         /* printing system_mon monitor */
+         if(system_mon.shorthandThreadID && (system_mon.whenFinished == 0)) {
             /* getting rid of of \n */
-            ctime_r(&system.whenStarted, ctime_buf);
+            ctime_r(&system_mon.whenStarted, ctime_buf);
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
             printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, system.pidBeingMonitored, ctime_buf,
-                    system.monitorInterval, system.logfile);
+                    system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf,
+                    system_mon.monitorInterval, system_mon.logfile);
          }
 
          /* printing monitor threads */
@@ -348,17 +353,17 @@ int main(int argc, char *argv[]) {
       }
 
       if(strcmp(command[0], "listcompleted") == 0) {
-         /* printing system monitor */
-         if(system.whenFinished) {
+         /* printing system_mon monitor */
+         if(system_mon.whenFinished) {
             /* getting rid of of \n */
-            ctime_r(&system.whenStarted, ctime_buf);
-            ctime_r(&system.whenFinished, ctime_buf2);
+            ctime_r(&system_mon.whenStarted, ctime_buf);
+            ctime_r(&system_mon.whenFinished, ctime_buf2);
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
             ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
             printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
-                    system.shorthandThreadID, system.pidBeingMonitored, ctime_buf, ctime_buf2,
-                    system.monitorInterval, system.logfile);
+                    system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, ctime_buf2,
+                    system_mon.monitorInterval, system_mon.logfile);
          }
 
          /* printing command thread */
@@ -382,17 +387,17 @@ int main(int argc, char *argv[]) {
       if(strcmp(command[0], "remove") == 0) {
 
          if(strcmp(command[1], "-s") == 0) {
-            system.shorthandThreadID = 0;
+            system_mon.shorthandThreadID = 0;
             /* filling out when finished */
-            time(&system.whenFinished);
+            time(&system_mon.whenFinished);
             /* issue cancel */
-            if( (status = pthread_cancel(system.monitorThreadID)) == ESRCH) {
+            if( (status = pthread_cancel(system_mon.monitorThreadID)) == ESRCH) {
                fprintf(stderr, "No thread could be found\n");
                continue;
             }
 
             /* wait for thread to terminate */
-            if( (status = pthread_join(system.monitorThreadID, &ret_val)) != 0) {
+            if( (status = pthread_join(system_mon.monitorThreadID, &ret_val)) != 0) {
                switch(status) {
                   case EDEADLK:
                      fprintf(stderr, "Deadlock detected\n");
@@ -514,7 +519,7 @@ int main(int argc, char *argv[]) {
             }
          }
 
-         if(system.shorthandThreadID && ans == 'h') {
+         if(system_mon.shorthandThreadID && ans == 'h') {
             printf("You still have threads actively monitoring. Do you really want to exit? (y/n) ");
             scanf("%c", &ans);
          }
@@ -522,11 +527,11 @@ int main(int argc, char *argv[]) {
          if(ans == 'y' || i == MAX_PIDS) {
             /* closing threads */
 
-            /* closing system monitor if open */
-            if(system.shorthandThreadID) {
-               /* closing system logfile */
-               pthread_cancel(system.monitorThreadID);
-               pthread_join(system.monitorThreadID, &ret_val);
+            /* closing system_mon monitor if open */
+            if(system_mon.shorthandThreadID) {
+               /* closing system_mon logfile */
+               pthread_cancel(system_mon.monitorThreadID);
+               pthread_join(system_mon.monitorThreadID, &ret_val);
             }
 
             /* closing monitor threads */
@@ -570,18 +575,18 @@ int main(int argc, char *argv[]) {
 //change the printfs to fprintfs to the html logfile
 /* Put dancing snoops next to each entry in active table and spped/slow them down based on their interval */
 void *htmlHelper(void *ptr) {
-   /* ptr is a pointer to a webmond_data struct, which contains pointers to the system
+   /* ptr is a pointer to a webmond_data struct, which contains pointers to the system_mon
     * and command threads */
-   monitor_data *system = (monitor_data *) sys, *pids = (monitor_data *)p; //casting a void * to a monitor_data * (may need **MD)
-   char *htmlName = (char *)file;
+   char *htmlName = html_name;
    FILE *htmlFile = fopen(htmlName, "w");
+   int i;
 
-   while(1);
+   while(1) {
       //write the header
-      fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content="2/* make this a %d */">\n</head>");
+      fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content=\"%d\">\n</head>", html_refresh_rate);
       fprintf(htmlFile, "<body>\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Winter 2012 | <a href=\"http://www.csc.calpoly.edu/~foaad\">Prof. Foaad Khosmood</a></p>\n\n");
 
-      fprintf(htmlFile, "<h3>Settings</h3>\n<ul>\n\t<li>webmon refresh rate = 1 second</li>\n\t<li>html refresh rate = 2 seconds</li>\n</ul>\n\n"); /* change refresh rate to 5d */
+      fprintf(htmlFile, "<h3>Settings</h3>\n<ul>\n\t<li>webmon refresh rate = %d second(s)</li>\n\t<li>html refresh rate = %d seconds</li>\n</ul>\n\n", interval_seconds, html_refresh_rate); /* change refresh rate to 5d */
       //write values into headure using fprintf w/ buncha %s
 
 
@@ -590,44 +595,32 @@ void *htmlHelper(void *ptr) {
       fprintf(htmlFile, "<h3>Active threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval (&#956sec)</td>\n\t<td>log file</td>\n</tr>\n\n");
 
       //actual code ffrom mond
-      time_r(&commandThread.whenStarted, ctime_buf);
+      ctime_r(&commandThread.whenStarted, ctime_buf);
       ctime_buf[strlen(ctime_buf) - 1] = '\0';
       fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
           commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf, commandThread.monitorInterval, commandThread.logfile);
-      /*printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-              commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf,
-              commandThread.monitorInterval, commandThread.logfile);*/
 
       /* printing system monitor */
-      if(system.shorthandThreadID && (system.whenFinished == 0)) {
+      if(system_mon.shorthandThreadID && (system_mon.whenFinished == 0)) {
          /* getting rid of of \n */
-         ctime_r(&system.whenStarted, ctime_buf);
+         ctime_r(&system_mon.whenStarted, ctime_buf);
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
          fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
-          system.shorthandThreadID, system.pidBeingMonitored, ctime_buf, system.monitorInterval, system.logfile);
+          system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, system_mon.monitorInterval, system_mon.logfile);
       }
-         
 
-         /*printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-                 system.shorthandThreadID, system.pidBeingMonitored, ctime_buf,
-                 system.monitorInterval, system.logfile);
-         }*/
+      /* printing monitor threads */
+      for(i = 0; i < MAX_PIDS; i++) {
+         if(pids[i].shorthandThreadID && (pids[i].whenFinished == 0)) {
+            ctime_r(&pids[i].whenStarted, ctime_buf);
+            ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-         /* printing monitor threads */
-         for(i = 0; i < MAX_PIDS; i++) {
-            if(pids[i].shorthandThreadID && (pids[i].whenFinished == 0)) {
-               ctime_r(&pids[i].whenStarted, ctime_buf);
-               ctime_buf[strlen(ctime_buf) - 1] = '\0';
+            fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
+             pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile);
 
-               fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
-                pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile);
-
-               /*printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Monitor Interval: %8d | Log File: %s\n",
-                       pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf,
-                       pids[i].monitorInterval, pids[i].logfile);*/
-            } 
-         }
+         } 
+      }
             
 
       //listcompleted
@@ -636,19 +629,16 @@ void *htmlHelper(void *ptr) {
       fprintf(htmlFile, "<h3>Active threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval   (&#956sec)</td>\n\t<td>log file</td>\n\t<td>time finished</td>\n</tr>\n\n");
 
       //actual mond code 
-      if(system.whenFinished) {
+      if(system_mon.whenFinished) {
          /* getting rid of of \n */
-         ctime_r(&system.whenStarted, ctime_buf);
-         ctime_r(&system.whenFinished, ctime_buf2);
+         ctime_r(&system_mon.whenStarted, ctime_buf);
+         ctime_r(&system_mon.whenFinished, ctime_buf2);
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
          ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>Wed Feb 22 16:19:00 PST 2012</td>\n</tr>\n\n", 
-          system.shorthandThreadID, system.pidBeingMonitored, ctime_buf, system.monitorInterval, system.logfile, ctime_buf2);
+         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n\n", 
+          system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, system_mon.monitorInterval, system_mon.logfile, ctime_buf2);
 
-         /*printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Finished: %s | Monitor Interval: %8d | Log File: %s\n",
-                 system.shorthandThreadID, system.pidBeingMonitored, ctime_buf, ctime_buf2,
-                 system.monitorInterval, system.logfile);*/
       }
 
       /* printing command thread */
@@ -659,12 +649,9 @@ void *htmlHelper(void *ptr) {
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
             ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>Wed Feb 22 16:19:00 PST 2012</td>\n</tr>\n\n", 
+         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n\n", 
           pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile, ctime_buf2);
 
-            /*printf("Monitoring Thread ID: %8d | Type: %8s | Time Started: %s | Time Completed: %s | Monitor Interval: %8d | Log File: %s\n",
-                    pids[i].shorthandThreadID, pids[i].pidBeingMonitored,
-                    ctime_buf, ctime_buf2, pids[i].monitorInterval, pids[i].logfile);*/
          } else {
             break;
          }
@@ -673,7 +660,7 @@ void *htmlHelper(void *ptr) {
       /* Put other useful statistics here */
 
       fclose(htmlFile);
-      usleep();//put the interval here
+      sleep(interval_seconds);
    }
 }
 
