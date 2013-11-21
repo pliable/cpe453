@@ -585,11 +585,11 @@ void *htmlHelper(void *ptr) {
       htmlFile = fopen(htmlName, "w");
       //write the header
       fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content=\"%d\">\n</head>", html_refresh_rate);
-      fprintf(htmlFile, "<body>\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Fall 2013 </p>\n\n");
+      fprintf(htmlFile, "<body onbeforeprint=\"aniSnoop();\">\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Fall 2013 </p>\"\n\n");
 
       fprintf(htmlFile, "<h3>Settings</h3>\n<ul>\n\t<li>webmon refresh rate = %d second(s)</li>\n\t<li>html refresh rate = %d seconds</li>\n</ul>\n\n", interval_seconds, html_refresh_rate); /* change refresh rate to 5d */
       //write values into headure using fprintf w/ buncha %s
-
+   
 
       //listactive
       //write listactive header shit
@@ -600,7 +600,7 @@ void *htmlHelper(void *ptr) {
       ctime_buf[strlen(ctime_buf) - 1] = '\0';
       fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n<td><img src=\"dancing_snoop/tmp-0.gif\" id=\"SnoopCommander\"></td></tr>\n\n", 
           commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf, commandThread.monitorInterval, commandThread.logfile);
-      fprintf(htmlFile, "<script>\nfunction aniSnoop(){\nvar which = 0;\nconsole.log(\"ran\");\nwhich=which+1;\nif(which>57){ which=0;}\ndocument.getElementById(\"SnoopCommander\").src=\"dancing_snoop/tmp-\" + which + \".gif\";\nsetTimeout(\"aniSnoop\", 1);}</script>");
+      fprintf(htmlFile, "<script>\nvar which=25;\nfunction aniSnoop(){\n\n\nwhile(true){\nconsole.log(\"run\");\ndocument.getElementById(\"SnoopCommander\").src=\"dancing_snoop/tmp-\" + which + \".gif\";\nwhich=which+1;\nif(which > 57) { which=0; }\nsetTimeout(\"aniSnoop\", 1);}}</script>");
 
 
       /* printing system monitor */
@@ -660,7 +660,7 @@ void *htmlHelper(void *ptr) {
             break;
          }
       }
-      fprintf(htmlFile, "</table></html>");
+      fprintf(htmlFile, "</table></body></html>");
 
       /* Put other useful statistics here */
 
