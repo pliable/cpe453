@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
    char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
    if(argc != 4) {
       fprintf(stderr, "Usage: webmond interval_in_seconds html_refresh filename\n");
+      return -1;
    }
    interval_seconds = strtol(argv[1], NULL, 10);
    html_refresh_rate = strtol(argv[2], NULL, 10);
@@ -588,7 +589,7 @@ void *htmlHelper(void *ptr) {
       htmlFile = fopen(htmlName, "w");
       //write the header
       fprintf(htmlFile, "<html>\n<head>\n<title>System Monitor - Web extension by Kevin Stein and Steve Choo</title>\n<meta http-equiv=\"refresh\" content=\"%d\">\n</head>", html_refresh_rate);
-      fprintf(htmlFile, "<body onbeforeprint=\"aniSnoop();\">\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 453 Fall 2013 </p>\"\n\n");
+      fprintf(htmlFile, "<body onload=\"aniSnoop();\">\n<h2>System Monitor - Web extension</h2>\n<p>by Kevin Stein and Steve Choo | CPE 420 Fall 2013 </p>\"\n\n");
 
       fprintf(htmlFile, "<h3>Settings</h3>\n<ul>\n\t<li>webmon refresh rate = %d second(s)</li>\n\t<li>html refresh rate = %d seconds</li>\n</ul>\n\n", interval_seconds, html_refresh_rate); /* change refresh rate to 5d */
       //write values into headure using fprintf w/ buncha %s
@@ -601,9 +602,8 @@ void *htmlHelper(void *ptr) {
       //actual code ffrom mond
       ctime_r(&commandThread.whenStarted, ctime_buf);
       ctime_buf[strlen(ctime_buf) - 1] = '\0';
-      fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n<td><img src=\"dancing_snoop/tmp-0.gif\" id=\"SnoopCommander\"></td></tr>\n\n", 
+      fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n<td><img src=\"dancing_snoop/dance.gif\" id=\"SnoopCommander\"></td></tr>\n\n", 
           commandThread.shorthandThreadID, commandThread.pidBeingMonitored, ctime_buf, commandThread.monitorInterval, commandThread.logfile);
-      fprintf(htmlFile, "<script>\nvar which=25;\nfunction aniSnoop(){\n\n\nwhile(true){\nconsole.log(\"run\");\ndocument.getElementById(\"SnoopCommander\").src=\"dancing_snoop/tmp-\" + which + \".gif\";\nwhich=which+1;\nif(which > 57) { which=0; }\nsetTimeout(\"aniSnoop\", 1);}}</script>");
 
 
       /* printing system monitor */
@@ -612,7 +612,7 @@ void *htmlHelper(void *ptr) {
          ctime_r(&system_mon.whenStarted, ctime_buf);
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
+         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td><td><img src=\"dancing_snoop/dance.gif\"></td>\n</tr>\n\n", 
           system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, system_mon.monitorInterval, system_mon.logfile);
       }
 
@@ -622,7 +622,7 @@ void *htmlHelper(void *ptr) {
             ctime_r(&pids[i].whenStarted, ctime_buf);
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-            fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
+            fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td><td><img src=\"dancing_snoop/dance.gif\"></td>\n</tr>\n\n", 
              pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile);
 
          } 
@@ -633,7 +633,8 @@ void *htmlHelper(void *ptr) {
       //listcompleted
 
       //write html header
-      fprintf(htmlFile, "<h3>Completed threads</h3>\n<table border=\"1\",cellpadding=\"2\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>time</td>\n\t<td>interval   (&#956sec)</td>\n\t<td>log file</td>\n\t<td>time finished</td>\n</tr>\n\n");
+      //fprintf(htmlFile, "<h3>Completed threads</h3>\n<table border=\"1\",cellpadding=\"1\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t<td>start</td>\n\t<td>interval(&#956sec)</td>\n\t<td>log file</td>\n\t<td>stop</td>\n<td>Rest</td>\n</tr>\n\n");
+      fprintf(htmlFile, "<h3>Completed threads</h3>\n<table border=\"1\",cellpadding=\"1\">\n<tr>\n\t<td>thread ID</td>\n\t<td>process ID</td>\n\t\n\t<td>interval(&#956sec)</td>\n\t<td>log file</td>\n\t<td>stop</td>\n<td>Rest</td>\n</tr>\n\n");
 
       //actual mond code 
       if(system_mon.whenFinished) {
@@ -643,8 +644,10 @@ void *htmlHelper(void *ptr) {
          ctime_buf[strlen(ctime_buf) - 1] = '\0';
          ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n\n", 
-          system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, system_mon.monitorInterval, system_mon.logfile, ctime_buf2);
+         //fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n<td nowrap><img src=\"dancing_snoop/tmp-%d.gif\"></td>n\n", 
+         // system_mon.shorthandThreadID, system_mon.pidBeingMonitored, ctime_buf, system_mon.monitorInterval, system_mon.logfile, ctime_buf2, rand()%58);
+         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n<td nowrap><img src=\"dancing_snoop/tmp-%d.gif\"></td>n\n", 
+          system_mon.shorthandThreadID, system_mon.pidBeingMonitored, system_mon.monitorInterval, system_mon.logfile, ctime_buf2, rand()%58);
 
       }
 
@@ -656,8 +659,8 @@ void *htmlHelper(void *ptr) {
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
             ctime_buf2[strlen(ctime_buf2) - 1] = '\0';
 
-         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n</tr>\n\n", 
-          pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile, ctime_buf2);
+         fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n\t<td>%s</td>\n<td><img src=\"dancing_snoop/tmp-%d.gif\"></td></tr>\n\n", 
+          pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile, ctime_buf2, rand()%58);
 
          } else {
             break;
