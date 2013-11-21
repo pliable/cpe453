@@ -20,6 +20,9 @@ int main(int argc, char *argv[]) {
    /* for printing purposes, remember that pthread_t is an unsigned long int */
    void *ret_val;
    char command[7][35], input[BUFFER_SIZE], *token, defaultLogfile[BUFFER_SIZE];
+   if(argc != 4) {
+      fprintf(stderr, "Usage: webmond interval_in_seconds html_refresh filename\n");
+   }
    interval_seconds = strtol(argv[1], NULL, 10);
    html_refresh_rate = strtol(argv[2], NULL, 10);
    html_name = argv[3];
