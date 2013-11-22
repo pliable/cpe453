@@ -50,4 +50,4 @@ void getPidStatmData(FILE **logfile, FILE **pidstatm);
 void *pidMonitorHelper(void *ptr);
 void *execMonitorHelper(void *ptr);
 void *systemMonitorHelper(void *ptr);
-void *htmlHelper(void *sys, void *p, void *file);
+void *htmlHelper(void *ptr);

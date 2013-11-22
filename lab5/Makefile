@@ -10,4 +10,4 @@ webmond: mond.c
 	$(CC) $(CFLAGS) -o webmond mond.c
 
 clean:
-	rm -f ./*.o mond
+	rm -f ./*.o mond webmond
