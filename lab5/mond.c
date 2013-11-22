@@ -665,7 +665,26 @@ void *htmlHelper(void *ptr) {
             break;
          }
       }
-      fprintf(htmlFile, "</table></body></html>");
+      fprintf(htmlFile, "</table>");
+
+      char *line = NULL;
+      size_t size = 0;
+      FILE *loadavg; 
+
+      loadavg = fopen(LOADAVG, "r");
+
+      getline(&line, &size, loadavg);
+      strtok(line, " ");
+      fprintf(htmlFile, "<p>Current Load: %s</p>", line);
+      fclose(loadavg);
+
+      loadavg = fopen("/proc/uptime", "r");
+      getline(&line, &size, loadavg);
+      strtok(line, " ");
+      fprintf(htmlFile, "<p>System has been online for %s seconds</p>", line);
+      fclose(loadavg);
+
+      fprintf(htmlFile, "</body></html>");
 
       /* Put other useful statistics here */
 
