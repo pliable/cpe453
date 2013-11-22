@@ -1,7 +1,7 @@
 Steve Choo (schoo)
 Kevin Stein (kestein)
 
-Simply run "make" to compile the program and then launch the executalbe "mond"
+To make webmond, simply type "make webmond"
 
 Our nasty flag makes a return in the form of sonOfNasty. We're sorry.
 
