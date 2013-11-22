@@ -624,9 +624,9 @@ void *htmlHelper(void *ptr) {
             ctime_r(&pids[i].whenStarted, ctime_buf);
             ctime_buf[strlen(ctime_buf) - 1] = '\0';
 
-            fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n</tr>\n\n", 
-             pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile);
-
+            fprintf(htmlFile, "<tr>\n\t\t<td>%8d</td>\n\t\t<td>%8s</td>\n\t<td>%s</td>\n\t\t<td>%8d</td>\n\t\t<td>%s</td>\n<<td><img src=\"dancing_snoop/tmp-0.gif\" id=\"Snoop%d\"></td>/tr>\n\n", 
+             pids[i].shorthandThreadID, pids[i].pidBeingMonitored, ctime_buf, pids[i].monitorInterval, pids[i].logfile, i);
+            fprintf(htmlFile, "<script>\nvar which%d=0;\nvar sys=setInterval(function(){if(which%d > 57) { which%d=0; } else { which%d++; } aniSnoop(which%d, \'Snoop%d\')},%d);\n</script>\n", i, i, i, i, i, i, pids[i].monitorInterval);
          } 
       }
            
