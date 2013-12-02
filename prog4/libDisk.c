@@ -23,7 +23,8 @@ int readBlock(int disk, int bNum, void *block) {
    if(status < 0) {
       return -1;
    }
-   status = read(disk, buffer, BLOCKSIZE);
+   //status = read(disk, buffer, BLOCKSIZE);
+   status = read(disk, block, BLOCKSIZE);
    if(status < 0) {
       return -1;
    }
