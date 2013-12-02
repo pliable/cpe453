@@ -1,10 +1,11 @@
-#include "fs.h"
+#include "libDisk.h"
 
 int openDisk(char *filename, int nBytes) {
    int disk, c;
    int numBlocks = nBytes/BLOCKSIZE;
-   disk = open(filename, O_RDWR);/* Put numBytes in entry table for this disk */
+   disk = open(filename, O_RDWR | O_CREAT | O_TRUNC);/* Put numBytes in entry table for this disk */
    if(disk < 0) {
+      printf("fail\n");
       return -1;
    }
    for(c = 0; c < nBytes; c++) {
@@ -16,7 +17,7 @@ int openDisk(char *filename, int nBytes) {
 
 int readBlock(int disk, int bNum, void *block) {
    int offset = bNum*BLOCKSIZE, status;
-   void buffer[BLOCKSIZE];
+   unsigned char buffer[BLOCKSIZE];
    /* cHECK to make sure offset < allocated disk bytes */
    status = lseek(disk, offset, SEEK_SET);
    if(status < 0) {
