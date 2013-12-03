@@ -19,8 +19,9 @@ int openDisk(char *filename, int nBytes) {
    write(disk, 0, 1);
    //format the blocks on the disk
    for(c = 1; c < numBlocks; c++) {//start at block 1 cos block 0 is the super
+      lseek(disk, BLOCKSIZE*c, SEEK_SET);
       write(disk, "4", 1);
-      write(disk, '0x45', 1);
+      write(disk, data[0], 1);
       if(numBlocks - c == 1) {//we are on the final block, so there is no next
          write(disk, 0, 1);
       }

@@ -1,19 +1,9 @@
 #include "libTinyFS.h"
 
-int tfs_mkfs(char *filename, int nBytes) {
-   return 0;
-}
-
-int tfs_mount(char *filname) {
-   return 0;
-
-}
-
-int tfs_unmount(void) {
-   return 0;
-}
-
 fileDescriptor tfs_openFile(char *name) {
+   //read superblock and find free space for the file
+   //make file pointer point to that part of the disk
+   //put that into entry in table thang
    return 0;
 }
 
