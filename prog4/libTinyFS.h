@@ -12,6 +12,11 @@ typedef struct {
    char *filename;
 } fileinfo;
 
+struct node {
+   node *right = 0;
+   fileinfo newFileData;
+};
+
 fileDescriptor tfs_openFile(char *name);
 int tfs_closeFile(fileDescriptor FD);
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size);
