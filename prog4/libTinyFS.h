@@ -7,13 +7,14 @@
 #define DEFAULT_DISK_SIZE 10240
 #define BLOCKSIZE 256
 typedef int fileDescriptor;
-typedef struct {
+typedef struct f{
    fileDescriptor fp;
    char *filename;
+   struct f *next;
 } fileinfo;
 
 struct node {
-   node *right = 0;
+   node *next = 0;
    fileinfo newFileData;
 };
 

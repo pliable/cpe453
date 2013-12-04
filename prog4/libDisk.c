@@ -54,8 +54,8 @@ int openDisk(char *filename, int nBytes) {
       else {
          offset = c*BLOCKSIZE;
          //why array size 1?
-         char addr[1];
-         sprintf(addr, "%x", offset);
+         char addr;
+         sprintf(&addr, "%x", offset);
          SYS_ERR(write(disk, addr, 1), "write");
       }
       //This will always execute in the loop...what about final block write?

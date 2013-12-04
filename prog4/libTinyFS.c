@@ -11,10 +11,12 @@ fileDescriptor tfs_openFile(char *name) {
    return 0;
 }
 
+//go through the file extent blocks till the last one and set the next block to 0
 int tfs_closeFile(fileDescriptor FD) {
    return 0;
 }
 
+//make the indoe block by making header shit and memcpying at loc after shit
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    return 0;
 }
