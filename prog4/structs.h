@@ -29,7 +29,7 @@ typedef struct {
 
 /* struct to represent formatted block */
 typedef struct {
-   uint16_t firstByte;
+   uint8_t firstByte;
    uint8_t magic;
    uint8_t finalByte;
 } formatted_block;
