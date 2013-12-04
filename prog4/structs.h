@@ -4,7 +4,7 @@
 #pragma pack(1)
 /* struct to represent superblock, modify accordingly for TinyFS */
 typedef struct {
-   uint8_t firstByte;
+   uint8_t type;
    uint8_t magic;
    uint16_t blockOffset;
    uint8_t finalByte;
@@ -29,13 +29,18 @@ typedef struct {
 
 /* struct to represent formatted block */
 typedef struct {
-   uint8_t firstByte;
+   uint8_t type;
    uint8_t magic;
    uint8_t finalByte;
 } formatted_block;
-#pragma pack(pop)
 
 /* struct to represent an inode, modify accordingly for TinyFS */
+typedef struct {
+   char[8] fileName;
+   uint32_t size;
+} inodes;
+#pragma pack(pop)
+/*
 typedef struct {
    uint16_t mode;
    uint16_t links;
@@ -45,12 +50,13 @@ typedef struct {
    int32_t atime;
    int32_t mtime;
    int32_t ctime;
-   /* will we be using indirect zones for data? or another method... */
+    will we be using indirect zones for data? or another method... 
    uint32_t zone[DIRECT_ZONES];
    uint32_t indirect;
    uint32_t two_indirect;
    uint32_t unused;
 } inodes;
+*/
 
 /* directory entry */
 typedef struct {

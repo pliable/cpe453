@@ -20,7 +20,7 @@ int openDisk(char *filename, int nBytes) {
    SYS_ERR(lseek(disk, 0, SEEK_SET), "lseek");//error check yo
    //superblock setup
 
-   sb.firstByte = 1;
+   sb.type = 1;
    sb.magic = MAGIC;
    sb.blockOffset = FIRSTBLOCKOFFSET;
    sb.finalByte = 0;
@@ -37,7 +37,7 @@ int openDisk(char *filename, int nBytes) {
 
    //format the blocks on the disk
 
-   fb.firstByte = 4;
+   fb.type = 4;
    fb.magic = MAGIC;
    fb.finalByte = 0;
 
