@@ -26,13 +26,6 @@ int openDisk(char *filename, int nBytes) {
    //Writing superblock to disk
    SYS_ERR(write(disk, &sb, sizeof(sb)), "write");
    
-   /*
-   SYS_ERR(write(disk, "1", 1), "write");
-   SYS_ERR(write(disk, data[0], 1), "write");
-   SYS_ERR(write(disk, data[1], 1), "write");
-   SYS_ERR(write(disk, 0, 1), "write");
-   */
-
    //format the blocks on the disk
 
    fb.type = 4;
@@ -41,10 +34,7 @@ int openDisk(char *filename, int nBytes) {
 
    for(c = 1; c < numBlocks; c++) {//start at block 1 cos block 0 is the super
       SYS_ERR(lseek(disk, BLOCKSIZE*c, SEEK_SET), "lseek");
-      /*
-      SYS_ERR(write(disk, "4", 1), "write");
-      SYS_ERR(write(disk, '0x45', 1), "write");
-      */
+
       if(c + 1 > numBlocks) {//we are on the final block, so there is no next
          fb.blockAddress = "\0";
       }
