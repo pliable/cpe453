@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -13,10 +14,30 @@ typedef struct f{
    struct f *next;
 } fileinfo;
 
-struct node {
-   node *next = 0;
-   fileinfo newFileData;
-};
+#pragma pack(push)
+#pragma pack(1)
+/* struct to represent superblock, modify accordingly for TinyFS */
+typedef struct {
+   uint8_t type;
+   uint8_t magic;
+   uint8_t byteOffset;
+   uint8_t finalByte;
+} superblock;
+
+/* struct to represent formatted block */
+typedef struct {
+   uint8_t type;
+   uint8_t magic;
+   uint8_t blockAddress;
+   uint8_t finalByte;
+} formatted_block;
+
+/* struct to represent an inode, modify accordingly for TinyFS */
+typedef struct {
+   char fileName[8];
+   uint32_t size;
+} inodes;
+#pragma pack(pop)
 
 fileDescriptor tfs_openFile(char *name);
 int tfs_closeFile(fileDescriptor FD);
