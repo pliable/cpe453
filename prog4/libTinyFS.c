@@ -2,6 +2,19 @@
 
 fileDescriptor globalFP = 0;
 struct node head;
+
+int tfs_mkfs(char *filename, int nBytes) {
+
+}
+
+int tfs_mount(char *filename) {
+
+}
+
+int tfs_unmount() {
+
+}
+
 fileDescriptor tfs_openFile(char *name) {
    //read superblock and find free space for the file
    //insert inode entry into superblock
