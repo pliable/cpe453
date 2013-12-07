@@ -1,6 +1,7 @@
 #include "libTinyFS.h"
+#include "libDisk.c"
 
-resource_table fileTable;
+resource_table *fileTable;
 
 fileDescriptor globalFP = 0;
 int fsIsMounted = 0;
@@ -38,8 +39,9 @@ int tfs_mkfs(char *filename, int nBytes) {
    for(c = 1; c < numBlocks; c++) {//start at block 1 cos block 0 is the super
       SYS_ERR(lseek(disk, BLOCKSIZE*c, SEEK_SET), "lseek");
 
-      if(c + 1 > numBlocks) {//we are on the final block, so there is no next
-         fb.blockAddress = "\0";
+      if(c + 1 >= numBlocks) {//we are on the final block, so there is no next
+         printf("WHY YOU NOT HITTING??????????\n");
+         fb.blockAddress = '\0';
       }
       else {
          fb.blockAddress = c + 1;
@@ -63,10 +65,10 @@ int tfs_mount(char *filename) {
    }
    disk = openDisk(filename, 0);
    while(1) {
-      readblock(disk, blockNo, block);
-      if(block[1] != '0x45') { /*magic number check */
+      readBlock(disk, blockNo, block);
+      if(block[1] != MAGIC) { /*magic number check */
          return -1; /*malformed fs */
-      } else if(block[2] == "\0") { /* final block checked in the file system */
+      } else if(block[2] == '\0') { /* final block checked in the file system */
          break;
       }
       blockNo++;
@@ -77,13 +79,17 @@ int tfs_mount(char *filename) {
 
 int tfs_unmount() {
 
+
+
+   fsIsMounted = 0;
+   return 0;
 }
 
+//read superblock and find free space for the file
+//insert inode entry into superblock
+//make file pointer point to that part of the disk
+//put that into entry in table thang
 fileDescriptor tfs_openFile(char *name) {
-   //read superblock and find free space for the file
-   //insert inode entry into superblock
-   //make file pointer point to that part of the disk
-   //put that into entry in table thang
    
    return 0;
 }

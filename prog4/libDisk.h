@@ -5,11 +5,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "libTinyFS.h"
-
-#define MAGIC 0x45
-#define FIRSTBLOCKOFFSET 0x256
-#define DISKNAME "TinyFSDisk"
 
 int openDisk(char *filename, int nBytes);
 int readBlock(int disk, int bNum, void *block);

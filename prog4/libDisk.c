@@ -1,6 +1,3 @@
-#include "libDisk.h"
-/* for SYS_ERR, first parameter is system call, second is string name of system call */
-#define SYS_ERR(eno, sys_call) { if(eno < 0) { perror(sys_call); exit(EXIT_FAILURE); } }
 
 int diskSize = 0;
 int openDisk(char *filename, int nBytes) {
