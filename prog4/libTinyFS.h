@@ -39,6 +39,14 @@ typedef struct {
 } inodes;
 #pragma pack(pop)
 
+typedef struct resource_table resource_table;
+
+struct resource_table {
+   fileDescriptor fd;
+   char buffer[BLOCKSIZE];
+   resource_table *next;
+};
+
 fileDescriptor tfs_openFile(char *name);
 int tfs_closeFile(fileDescriptor FD);
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size);

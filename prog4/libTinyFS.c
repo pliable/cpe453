@@ -1,7 +1,9 @@
 #include "libTinyFS.h"
 
+resource_table fileTable;
+
 fileDescriptor globalFP = 0;
-struct node head;
+int fsIsMounted = 0;
 
 int tfs_mkfs(char *filename, int nBytes) {
    int disk, c, offset;
@@ -54,7 +56,23 @@ int tfs_mkfs(char *filename, int nBytes) {
 }
 
 int tfs_mount(char *filename) {
-
+   int disk, blockNo = 0;
+   char block[256];
+   if(fsIsMounted) {
+      return -1; /*a file system is already mounted */
+   }
+   disk = openDisk(filename, 0);
+   while(1) {
+      readblock(disk, blockNo, block);
+      if(block[1] != '0x45') { /*magic number check */
+         return -1; /*malformed fs */
+      } else if(block[2] == "\0") { /* final block checked in the file system */
+         break;
+      }
+      blockNo++;
+   }
+   fsIsMounted = 1;
+   return 0;
 }
 
 int tfs_unmount() {
