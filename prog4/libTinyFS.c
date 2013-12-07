@@ -7,11 +7,14 @@ fileDescriptor globalFP = 0;
 int fsIsMounted = 0;
 
 int tfs_mkfs(char *filename, int nBytes) {
-   int disk, c, offset;
-   int numBlocks = nBytes/BLOCKSIZE;
+   int disk, c, offset, numShifts = 0;;
+   int numBlocks = nBytes/BLOCKSIZE, numBits = numBlocks - 1;
+   /* lengthOfBitVector is number of bytes we need to represent our vector*/
    int lengthOfBitVector = numBlocks / 8;
    superblock sb;
    formatted_block fb;
+   char freeBlocksVector = 0;
+   char mask = 1;
 
    disk = openDisk(filename, nBytes);
 
@@ -29,6 +32,25 @@ int tfs_mkfs(char *filename, int nBytes) {
 
    //Writing superblock to disk
    SYS_ERR(write(disk, &sb, sizeof(sb)), "write");
+   /* Bit vector solution for free blocks LITTLE ENDIAN SOLUTION */
+   while(numBits > 0) {
+      /* Shift and OR with 0x00000001 */
+      freeBlocksVector = freeBlocksVector << 1;
+      freeBlocksVector = freeBlocksVector | mask;
+      numShifts++;
+      if(numShifts == 8) {
+         SYS_ERR(write(disk, &freeBlocksVector, 1), "write");
+         /* Zero out the Vector */
+         freeBlocksVector = freeBlocksVector & 0;
+         numShifts = 0;
+      }
+      numBits--;
+   }
+   /* Shift and write the leftovers */
+   if(numShifts) {
+      freeBlocksVector = freeBlocksVector << (8 - numShifts);
+      SYS_ERR(write(disk, &freeBlocksVector, 1), "write");
+   }
    
    //format the blocks on the disk
 
@@ -40,7 +62,6 @@ int tfs_mkfs(char *filename, int nBytes) {
       SYS_ERR(lseek(disk, BLOCKSIZE*c, SEEK_SET), "lseek");
 
       if(c + 1 >= numBlocks) {//we are on the final block, so there is no next
-         printf("WHY YOU NOT HITTING??????????\n");
          fb.blockAddress = '\0';
       }
       else {
@@ -90,8 +111,58 @@ int tfs_unmount() {
 //make file pointer point to that part of the disk
 //put that into entry in table thang
 fileDescriptor tfs_openFile(char *name) {
-   
-   return 0;
+   time_t t;
+   inode i;
+   int disk;
+   uint8_t super[BLOCKSIZE];
+   uint8_t addr, bitVectorByte, grandsonOfNasty = 0/* To get the real address of the block */;
+   globalFP++;
+   char finder = 256, addressPlacer;
+
+   /* open disk */
+   disk = openDisk(name, 0);
+
+   /* grab superblock */
+   readBlock(disk, 0, &super);
+
+   bitVectorByte = super[4];//first byte of the free block list bit vector
+
+   /* grab byte offset, index into super array */
+   addr = super[2];
+
+   /* fill out inodes */
+   i.type = 2;
+   i.magic = MAGIC;
+   /* Find a free block in the bit vector */
+   while(1) {
+      addressPlacer = bitVectorByte & finder;
+      grandsonOfNasty++;
+      /* Found a free block */
+      if(addressPlacer == 256) {
+         i.blockAddress = grandsonOfNasty;
+         break;
+      }
+      bitVectorByte = bitVectorByte << 1;
+      if(bitVectorByte == 0) {
+         /* Need to go to the next byte to find a block */
+         bitVectorByte++;
+         /* No more blocks free */
+         if(bitVectorByte == 0) {
+            return -1; /* Disk full */
+         }
+      }
+   }
+   i.blockAddress = //pull free block from bit vector;
+   i.finalByte = 0;
+   strncpy(i.fileName, name, 8);
+   i.size = 0;
+   time(&t);
+   i.createTime = t;
+   i.accessTime = t;
+   i.modifyTime = t;
+   i.readWrite = 1;
+
+   return globalFP;
 }
 
 //go through the file extent blocks till the last one and set the next block to 0

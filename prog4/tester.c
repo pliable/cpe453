@@ -1,11 +1,11 @@
 #include "libTinyFS.h"
 
 int main() {
-   int status = 42, status2 = 41, status3;
+   int status = 42, status2 = 41, status3 = 40;
 
-   //status2 = tfs_mkfs("asdf", 0);
+   status2 = tfs_mkfs("asdf", DEFAULT_DISK_SIZE);
    //status = tfs_mount("asdf");
-   status3 = tfs_mount("asdf");
+   //status3 = tfs_mount("asdf");
 
    printf("STATUS tfs_mount: %d\n STATUS tfs_mkfs: %d\n STATUS3 tfs_mount: %d\n", status, status2, status3);
 

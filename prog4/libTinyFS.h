@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdint.h>
@@ -40,9 +41,20 @@ typedef struct {
 
 /* struct to represent an inode, modify accordingly for TinyFS */
 typedef struct {
+   /* header stuff */
+   uint8_t type;
+   uint8_t magic;
+   uint8_t blockAddress;
+   uint8_t finalByte;
+   /* rest of data */
    char fileName[8];
-   uint32_t size;
-} inodes;
+   uint16_t size;
+   /* time_t is 8 bytes */
+   time_t createTime;
+   time_t accessTime;
+   time_t modifyTime;
+   uint8_t readWrite;
+} inode;
 #pragma pack(pop)
 
 typedef struct resource_table resource_table;
