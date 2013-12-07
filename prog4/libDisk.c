@@ -13,7 +13,6 @@ int openDisk(char *filename, int nBytes) {
    else {
       if(nBytes == 0) { /* If the contents should not be overwritten */
          SYS_ERR((disk = (open(filename, O_RDWR))), "open");
-         SYS_ERR(lseek(disk, 0, SEEK_END), "lseek");
       }
       else { /* If contents can be overwritten */
          SYS_ERR((disk = (open(filename, O_RDWR))), "open");
