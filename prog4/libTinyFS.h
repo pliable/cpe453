@@ -16,8 +16,9 @@
 #define SYS_ERR(eno, sys_call) { if(eno < 0) { perror(sys_call); exit(EXIT_FAILURE); } }
 typedef int fileDescriptor;
 typedef struct f{
-   fileDescriptor fp;
-   char *filename;
+   fileDescriptor fd;
+   int fp;/* File pointer */
+   char filename[8];
    struct f *next;
 } fileinfo;
 
@@ -61,7 +62,7 @@ typedef struct resource_table resource_table;
 
 struct resource_table {
    fileDescriptor fd;
-   char buffer[BLOCKSIZE];
+   uint8_t *buffer;/* can be either BLOCKSIZE - sizeof(indoe) OR BLOCKSIZE - 4 */
    resource_table *next;
 };
 
