@@ -117,7 +117,7 @@ fileDescriptor tfs_openFile(char *name) {
    uint8_t super[BLOCKSIZE];
    uint8_t addr, bitVectorByte, grandsonOfNasty = 0/* To get the real address of the block */;
    globalFP++;
-   char finder = 256, addressPlacer;
+   char finder = 128, addressPlacer;
 
    /* open disk */
    disk = openDisk(name, 0);
@@ -125,7 +125,9 @@ fileDescriptor tfs_openFile(char *name) {
    /* grab superblock */
    readBlock(disk, 0, &super);
 
-   bitVectorByte = super[4];//first byte of the free block list bit vector
+   int superIndex = 4;/* Beginning of the free block list vector index */
+
+   bitVectorByte = super[superIndex];//first byte of the free block list bit vector
 
    /* grab byte offset, index into super array */
    addr = super[2];
@@ -138,21 +140,23 @@ fileDescriptor tfs_openFile(char *name) {
       addressPlacer = bitVectorByte & finder;
       grandsonOfNasty++;
       /* Found a free block */
-      if(addressPlacer == 256) {
+      if(addressPlacer == 128) {
          i.blockAddress = grandsonOfNasty;
+         finder = 127; /* 01111111 */
+         super[superIndex] = super[superIndex] & finder;
          break;
       }
       bitVectorByte = bitVectorByte << 1;
       if(bitVectorByte == 0) {
          /* Need to go to the next byte to find a block */
          bitVectorByte++;
+         superIndex++;
          /* No more blocks free */
          if(bitVectorByte == 0) {
             return -1; /* Disk full */
          }
       }
    }
-   i.blockAddress = //pull free block from bit vector;
    i.finalByte = 0;
    strncpy(i.fileName, name, 8);
    i.size = 0;
@@ -161,6 +165,10 @@ fileDescriptor tfs_openFile(char *name) {
    i.accessTime = t;
    i.modifyTime = t;
    i.readWrite = 1;
+   //write inode block to it's proper place
+   //make inode block address entry in super block
+
+   //writeblock for the updated super block 
 
    return globalFP;
 }
