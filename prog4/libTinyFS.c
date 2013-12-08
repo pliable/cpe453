@@ -393,8 +393,8 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
                /* Write out inode block */
                memcpy(&blockBuff[offset], buffer, BLOCKSIZE-offset);
                size = size - (BLOCKSIZE - offset); /* Decrement size by the amount we wrote */
-               offset = sizeof(formatted_block);
                buffer = buffer + (BLOCKSIZE - offset);//move the buffer over after writing
+               offset = sizeof(formatted_block);
                /*for(k = (BLOCKSIZE - offset); k < strlen(buffer); k++) {
                   buffer[b] = buffer[k];
                   b++;
