@@ -22,7 +22,6 @@ struct fileinfo {
    fileDescriptor fd;
    int fp;/* File pointer */
    char filename[8];
-   uint8_t *buffer;/* can be either BLOCKSIZE - sizeof(indoe) OR BLOCKSIZE - 4 */
    uint8_t startBlock;
    fileinfo *next;
 };

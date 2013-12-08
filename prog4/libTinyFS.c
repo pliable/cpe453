@@ -162,7 +162,6 @@ fileDescriptor tfs_openFile(char *name) {
       resourceTable->fd = globalFD;
       resourceTable->fp = 0;
       strcpy(resourceTable->filename, name);
-      resourceTable->buffer = (uint8_t *)malloc(BLOCKSIZE - sizeof(inode));
       resourceTable->next = 0;
       currFileInfo = resourceTable;
    } else {
@@ -185,7 +184,6 @@ fileDescriptor tfs_openFile(char *name) {
       currFileInfo->fd = globalFD;
       currFileInfo->fp = 0;
       strcpy(currFileInfo->filename, name);
-      currFileInfo->buffer = (uint8_t *)malloc(BLOCKSIZE - sizeof(inode));
       currFileInfo->next = 0;
    }
 
@@ -326,6 +324,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
          currBlockToRead = currFileInfo->startBlock;
+         currFileInfo->fp = 0;
          if(size > blockBuff[12]) {//if the size passed in is larger than the old size of the file
             blockBuff[12] = sizeConvert;/* Update the size of the file */
          }
