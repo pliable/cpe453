@@ -22,7 +22,7 @@ int openDisk(char *filename, int nBytes) {
 }
 
 int readBlock(int disk, int bNum, void *block) {
-   int offset = bNum*BLOCKSIZE, status;
+   int offset = bNum*BLOCKSIZE, status = 0;
    /* cHECK to make sure offset < allocated disk bytes */
    SYS_ERR((status = lseek(disk, offset, SEEK_SET)), "lseek");
    SYS_ERR((status = read(disk, block, BLOCKSIZE)), "read");
@@ -32,7 +32,7 @@ int readBlock(int disk, int bNum, void *block) {
 }
 
 int writeBlock(int disk, int bNum, void *block) {
-   int offset = bNum*BLOCKSIZE, status;
+   int offset = bNum*BLOCKSIZE, status = 0;
    /* cHECK to make sure offset < allocated disk bytes */
    SYS_ERR((status = lseek(disk, offset, SEEK_SET)), "lseek");
    SYS_ERR((status = write(disk, block, BLOCKSIZE)), "write");

@@ -164,6 +164,7 @@ fileDescriptor tfs_openFile(char *name) {
       strcpy(resourceTable->filename, name);
       resourceTable->buffer = (uint8_t *)malloc(BLOCKSIZE - sizeof(inode));
       resourceTable->next = 0;
+      currFileInfo = resourceTable;
    } else {
       currFileInfo = resourceTable;
       while(currFileInfo->next != 0) {
@@ -237,7 +238,7 @@ fileDescriptor tfs_openFile(char *name) {
       /* Found a free block */
       if(addressPlacer == 128) { /* will break if bit vector is not in order (ex: 1001...) */
          i.blockAddress = grandsonOfNasty;
-         /* Zero out the bit that is sued for that address */
+         /* Zero out the bit that is used for that address */
          int gson = 0;
          finder = 128; /* 10000000 */
          while(gson < (8-(grandsonOfNasty%8))) {
@@ -296,7 +297,7 @@ int tfs_closeFile(fileDescriptor FD) {
 
    currFileInfo = resourceTable;
 
-   while(currFileInfo->next != 0) {
+   while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
 
       }
@@ -308,6 +309,104 @@ int tfs_closeFile(fileDescriptor FD) {
 
 //make the indoe block by making header shit and memcpying at loc after shit
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
+   int blocks = size / BLOCKSIZE, leftover = size % BLOCKSIZE;
+   unsigned int k;
+   int currDisk, offset = sizeof(inode), superIndex = 4, a;
+   uint8_t blockBuff[BLOCKSIZE], currBlockToRead, super[BLOCKSIZE],
+            grandsonOfNasty = 0, bitVectorByte;
+   uint16_t sizeConvert = size;
+   fileinfo *currFileInfo;
+   currFileInfo = resourceTable;
+   unsigned char addressPlacer, finder = 128;
+
+   currDisk = openDisk(currentFSMounted, 0);
+   readBlock(currDisk, 0, &super);
+   bitVectorByte = super[superIndex];
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         currBlockToRead = currFileInfo->startBlock;
+         if(size > blockBuff[12]) {//if the size passed in is larger than the old size of the file
+            blockBuff[12] = sizeConvert;/* Update the size of the file */
+         }
+         while(1) {
+            readBlock(currDisk, currBlockToRead, blockBuff);
+            if(blockBuff[0] == 4) {
+               blockBuff[0] = 3;
+            }
+            /* Finish buffer case */
+            if(size == (BLOCKSIZE - offset)) {
+               memcpy(&blockBuff[offset], buffer, BLOCKSIZE-offset);
+               blockBuff[2] = 0;
+               writeBlock(currDisk, currBlockToRead, blockBuff);
+               break;
+            }
+            else if(size < (BLOCKSIZE - offset)) {
+               memcpy(&blockBuff[offset], buffer, size);
+               blockBuff[2] = 0;
+               writeBlock(currDisk, currBlockToRead, blockBuff);
+               break;
+            }
+            /* Finish block case */
+            else if(size > (BLOCKSIZE - offset)) {
+               /* Write out inode block */
+               memcpy(&blockBuff[offset], buffer, BLOCKSIZE-offset);
+               offset = sizeof(formatted_block);
+               size = size - (BLOCKSIZE - offset); /* Decrement size by the amount we wrote */
+               int b = 0;
+               buffer = buffer + (BLOCKSIZE - offset);//move the buffer over after writing
+               /*for(k = (BLOCKSIZE - offset); k < strlen(buffer); k++) {
+                  buffer[b] = buffer[k];
+                  b++;
+               }*/
+               //buffer[b] = '\0';
+               /* Find free block in the bit vector */
+               while(1) {
+                  addressPlacer = bitVectorByte & finder;
+                  grandsonOfNasty++;
+                  /* Found a free block */
+                  if(addressPlacer == 128) { /* will break if bit vector is not in order (ex: 1001...) */
+                     /* Zero out the bit that is used for that address */
+                     int gson = 0;
+                     unsigned char finder = 128; /* 10000000 */
+                     while(gson < (8-(grandsonOfNasty%8))) {
+                        finder = finder >> 1;
+                        finder = finder | 128;
+                        gson++;
+                     }
+                     finder = finder >> 1;/* Place the zero in */
+                     gson++;
+                     while(gson < 8) {
+                        finder = finder >> 1;
+                        finder = finder | 128;
+                        gson++;
+                     }
+                     /* End zeroing that specific bit out */
+                     super[superIndex] = super[superIndex] & finder;
+                     break;
+                  }
+                  if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
+                     return -1; //disk full error
+                  }
+               }
+               /* Goto bit vector and find a free block
+                * put free block# into current block read (red) from disk
+                * modify header to be a file extent 
+                */
+               blockBuff[2] = grandsonOfNasty;/* The next free block we can write to */
+               writeBlock(currDisk, currBlockToRead, blockBuff);
+               currBlockToRead = blockBuff[2];/* next block in the file */
+            }
+         }
+         break;
+      }
+      currFileInfo = currFileInfo->next;
+      if(currFileInfo == NULL) {
+         return -1; //file not found error
+      }
+   }
+   writeBlock(currDisk, 0, &super);
+
    return 0;
 }
 
