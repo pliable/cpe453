@@ -102,7 +102,17 @@ int tfs_mount(char *filename) {
 }
 
 int tfs_unmount() {
+   fileDescriptor toClose;
 
+   if(!fsIsMounted) {
+      return -1; //no fs mounted error
+   }
+
+   /* closing all files */
+   while(resourceTable != NULL) {
+      toClose = resourceTable->fd;
+      tfs_closeFile(toClose);
+   }
 
    free(currentFSMounted);
    fsIsMounted = 0;
@@ -137,8 +147,11 @@ fileDescriptor tfs_openFile(char *name) {
    uint8_t super[BLOCKSIZE];
    uint8_t inodeReader[BLOCKSIZE];
    uint8_t addr, bitVectorByte, grandsonOfNasty = 0/* To get the real address of the block */;
-   globalFD++;
    unsigned char finder = 128, addressPlacer;
+   if(!fsIsMounted) {
+      return -1; //no fs mounted
+   }
+   globalFD++;
 
    /* open disk */
    disk = openDisk(currentFSMounted, 0);
@@ -292,17 +305,33 @@ fileDescriptor tfs_openFile(char *name) {
 //go through the file extent blocks till the last one and set the next block to 0
 int tfs_closeFile(fileDescriptor FD) {
    fileinfo *currFileInfo;
+   fileinfo *prevFileInfo;
+
+   if(!fsIsMounted) {
+      return -1;//no fs mounted error
+   }
 
    currFileInfo = resourceTable;
 
+   if(resourceTable->fd == FD) {
+      resourceTable = resourceTable->next;
+      return 0;
+   }
+   
+   prevFileInfo = currFileInfo;
+   currFileInfo = currFileInfo->next;
+
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
-
+         prevFileInfo->next = currFileInfo->next;
+         return 0;
       }
+      prevFileInfo = currFileInfo;
       currFileInfo = currFileInfo->next;
    }
 
-   return 0;
+   /* return error here since FD wasn't found */
+   return -1;
 }
 
 //make the indoe block by making header shit and memcpying at loc after shit
@@ -317,9 +346,14 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    currFileInfo = resourceTable;
    unsigned char addressPlacer, finder = 128;
 
+   if(!fsIsMounted) {
+      return -1; //no fs mounted
+   }
+
    currDisk = openDisk(currentFSMounted, 0);
    readBlock(currDisk, 0, &super);
    bitVectorByte = super[superIndex];
+
 
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
@@ -350,8 +384,8 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
             else if(size > (BLOCKSIZE - offset)) {
                /* Write out inode block */
                memcpy(&blockBuff[offset], buffer, BLOCKSIZE-offset);
-               offset = sizeof(formatted_block);
                size = size - (BLOCKSIZE - offset); /* Decrement size by the amount we wrote */
+               offset = sizeof(formatted_block);
                int b = 0;
                buffer = buffer + (BLOCKSIZE - offset);//move the buffer over after writing
                /*for(k = (BLOCKSIZE - offset); k < strlen(buffer); k++) {
@@ -410,14 +444,175 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 }
 
 int tfs_deleteFile(fileDescriptor FD) {
+   int y, disk, grandHoOfNasty = 0;
+   formatted_block f;
+   fileinfo *currFileInfo;
+   uint8_t blockDestroyer[BLOCKSIZE], boofer[BLOCKSIZE], super[BLOCKSIZE], currBlock;
+   uint8_t whichByte, whichBit, byteSelector;
+
+   if(!fsIsMounted) {
+      return -1;//no fs mounted
+   }
+
+   for(y = 0 ; y < BLOCKSIZE ; y++) {
+      blockDestroyer[y] = '\0';
+   }
+   disk = openDisk(currentFSMounted, 0);
+
+   readBlock(disk, 0, &super);
+   currFileInfo = resourceTable;
+   f.type = 4;
+   f.magic = MAGIC;
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         //we found our file!
+         currBlock = currFileInfo->startBlock;
+         while(1) {
+            readBlock(disk, currBlock, &boofer);
+            f.blockAddress = boofer[2];
+            memcpy(&boofer, &blockDestroyer, BLOCKSIZE);
+            memcpy(&boofer, &f, sizeof(formatted_block));
+            writeBlock(disk, currBlock, &boofer);
+
+            /* update superblock */
+            whichByte = currBlock / 8;
+            whichBit = currBlock % 8;
+            printf("%u  %u\n", whichByte, whichBit);
+            byteSelector = super[sizeof(formatted_block) + whichByte];
+            unsigned char finder = 128;
+            for(y = 1; y < whichBit; y++) {
+               finder = finder >> 1;
+            }
+            byteSelector = byteSelector | finder;
+            super[sizeof(formatted_block) + whichByte] = byteSelector;
+            /* End update */
+            currBlock = f.blockAddress;
+            if(currBlock == 0) {
+               grandHoOfNasty = 1;
+               break;
+            }
+         }
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   if(currFileInfo == NULL && !grandHoOfNasty) {
+      //file not found
+      return -1;
+   }
+   writeBlock(disk, 0, &super);//commit super block changes to disk
+
+   tfs_closeFile(FD);
    return 0;
 }
 
-int tfs_readByte(fileDescriptor FD, char *buffer) {
+int tfs_readByte(fileDescriptor FD, char *extBuffer) {
+   fileinfo *currFileInfo;
+   int fileptr, disk;
+   unsigned int offset = 0;
+   uint8_t blockToRead;
+   char buffer[BLOCKSIZE];
+
+   if(!fsIsMounted) {
+      return -1;//no fs mounted
+   }
+
+   currFileInfo = resourceTable;
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         //we found our file!
+         fileptr = currFileInfo->fp;
+         break;
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   if(currFileInfo == NULL) {
+      //file not found
+      return -1;
+   }
+
+   disk = openDisk(currentFSMounted, 0);
+
+   blockToRead = currFileInfo->startBlock;
+
+   offset = currFileInfo->fp;
+
+   if(offset == 0) {
+      readBlock(disk, blockToRead, buffer);
+      *extBuffer = buffer[sizeof(inode)];
+      currFileInfo->fp++;
+      return 0;
+   }
+   while(offset > 0) {
+      readBlock(disk, blockToRead, buffer);
+      if(buffer[0] == 2) {/* inode block */
+         if(buffer[2] == 0) { /* last block */
+            if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               *extBuffer = buffer[offset+sizeof(inode)];
+               break;
+            }
+            else {
+               return -1; //read too far error
+            }
+         }
+         else {/* Not the last block */
+            if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               *extBuffer = buffer[offset+sizeof(inode)];
+               break;
+            }
+            else {
+               offset = offset - (BLOCKSIZE - sizeof(inode));
+            }
+         }
+      }
+      else if(buffer[0] == 3) {/* extent block */
+         if(buffer[2] == 0) { /* last block */
+            if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               *extBuffer = buffer[offset+sizeof(sizeof(formatted_block))];
+               break;
+            }
+            else {
+               return -1; //read too far error
+            }
+            //final block
+         }
+         else {/* Not the last block */
+            if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               *extBuffer = buffer[offset+sizeof(formatted_block)];
+               break;
+            }
+            else {
+               offset = offset - (BLOCKSIZE - sizeof(formatted_block));
+            }
+         }
+      }
+      blockToRead = buffer[2];//grab the next block
+   }
+
+   currFileInfo->fp++;
    return 0;
 }
 
 int tfs_seek(fileDescriptor FD, int offset) {
-   return 0;
+   fileinfo *currFileInfo;
+
+   if(!fsIsMounted) {
+      return -1;//no fs mounted
+   }
+
+   currFileInfo = resourceTable;
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         currFileInfo->fp = offset;
+         return 0;
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   return -1;//no FD was found
 }
 
