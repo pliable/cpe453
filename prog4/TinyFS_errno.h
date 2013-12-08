@@ -1,0 +1,10 @@
+#define ALREADYMOUTNEDERR -2
+#define MALFORMEDFS -3
+#define NOFSMOUTNED -4
+#define FILEALREADYOPEN -5
+#define OUTOFMEMOERY -6
+#define DISKFULL -7
+#define FILENOTOPEN -8
+#define READONLYERR -9
+#define OVERFLOW -10
+#define NOMOREBITS -11

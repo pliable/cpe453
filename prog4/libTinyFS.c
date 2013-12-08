@@ -83,13 +83,13 @@ int tfs_mount(char *filename) {
    int disk, blockNo = 0;
    char block[256];
    if(fsIsMounted) {
-      return -1; /*a file system is already mounted */
+      return ALREADYMOUNTEDERR; /*a file system is already mounted */
    }
    disk = openDisk(filename, 0);
    while(1) {
       readBlock(disk, blockNo, block);
       if(block[1] != MAGIC) { /*magic number check */
-         return -1; /*malformed fs */
+         return MALFORMEDFS; /*malformed fs */
       } else if(block[2] == '\0') { /* final block checked in the file system */
          break;
       }
@@ -105,7 +105,7 @@ int tfs_unmount() {
    fileDescriptor toClose;
 
    if(!fsIsMounted) {
-      return -1; //no fs mounted error
+      return NOFSMOUNTED; //no fs mounted error
    }
 
    /* closing all files */
@@ -127,7 +127,7 @@ int shiftShit(uint8_t *bitVectorByte, int *superIndex) {
       *superIndex++;
       /* No more blocks free */
       if(*bitVectorByte == 0) {
-         return -10; /* went through all the bits */
+         return NOMOREBITS; /* went through all the bits */
       }
    }
 
@@ -149,7 +149,7 @@ fileDescriptor tfs_openFile(char *name) {
    uint8_t addr, bitVectorByte, grandsonOfNasty = 0/* To get the real address of the block */;
    unsigned char finder = 128, addressPlacer;
    if(!fsIsMounted) {
-      return -1; //no fs mounted
+      return NOFSMOUNTED; //no fs mounted
    }
    globalFD++;
 
@@ -181,7 +181,7 @@ fileDescriptor tfs_openFile(char *name) {
       currFileInfo = resourceTable;
       while(currFileInfo->next != 0) {
          if(!strcmp(currFileInfo->filename, name)) {
-            return -1; //file already open error
+            return FILEALREADYOPEN; //file already open error
          }
          /* iterating through list */
          currFileInfo = currFileInfo->next;
@@ -191,7 +191,7 @@ fileDescriptor tfs_openFile(char *name) {
       currFileInfo = currFileInfo->next;
 
       if(currFileInfo == 0) {
-         return -1; //out of memory error
+         return OUTOFMEMORY; //out of memory error
       }
 
       currFileInfo->fd = globalFD;
@@ -271,7 +271,7 @@ fileDescriptor tfs_openFile(char *name) {
          break;
       }
       if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
-         return -1;//disk full
+         return DISKFULL;//disk full
       }
    }
    i.finalByte = 0;
@@ -290,7 +290,7 @@ fileDescriptor tfs_openFile(char *name) {
       super[find + i.blockAddress] = i.blockAddress;
    } else {
       //disk is full for -1 case
-      return -1;
+      return DISKFULL;
    }
 
    //writeblock for the updated super block 
@@ -308,7 +308,7 @@ int tfs_closeFile(fileDescriptor FD) {
    fileinfo *prevFileInfo;
 
    if(!fsIsMounted) {
-      return -1;//no fs mounted error
+      return NOFSMOUTNED;//no fs mounted error
    }
 
    currFileInfo = resourceTable;
@@ -331,7 +331,7 @@ int tfs_closeFile(fileDescriptor FD) {
    }
 
    /* return error here since FD wasn't found */
-   return -1;
+   return FILENOTOPEN;
 }
 
 //make the indoe block by making header shit and memcpying at loc after shit
@@ -346,7 +346,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    time_t fileFucker;
 
    if(!fsIsMounted) {
-      return -1; //no fs mounted
+      return NOFSMOUNTED; //no fs mounted
    }
 
    currDisk = openDisk(currentFSMounted, 0);
@@ -361,7 +361,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          readBlock(currDisk, currBlockToRead, &blockBuff);
          /* Check for readonly */
          if(blockBuff[RWBYTE] == 0) {
-            return -1;//file is read only error
+            return READONLYERR;//file is read only error
          }
          blockBuff[22] = fileFucker;
          blockBuff[30] = fileFucker;
@@ -426,7 +426,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
                      break;
                   }
                   if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
-                     return -1; //disk full error
+                     return DISKFULL; //disk full error
                   }
                }
                /* Goto bit vector and find a free block
@@ -442,7 +442,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
       currFileInfo = currFileInfo->next;
       if(currFileInfo == NULL) {
-         return -1; //file not found error
+         return FILENOTOPEN; //file not found error
       }
    }
    writeBlock(currDisk, 0, &super);
@@ -458,7 +458,7 @@ int tfs_deleteFile(fileDescriptor FD) {
    uint8_t whichByte, whichBit, byteSelector;
 
    if(!fsIsMounted) {
-      return -1;//no fs mounted
+      return NOFSMOUNTED;//no fs mounted
    }
 
    for(y = 0 ; y < BLOCKSIZE ; y++) {
@@ -506,7 +506,7 @@ int tfs_deleteFile(fileDescriptor FD) {
 
    if(currFileInfo == NULL && !grandHoOfNasty) {
       //file not found
-      return -1;
+      return FILENOTOPEN;
    }
    writeBlock(disk, 0, &super);//commit super block changes to disk
 
@@ -523,7 +523,7 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
    time_t axecess;
 
    if(!fsIsMounted) {
-      return -1;//no fs mounted
+      return NOFSMOUNTED;//no fs mounted
    }
 
    currFileInfo = resourceTable;
@@ -539,7 +539,7 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
 
    if(currFileInfo == NULL) {
       //file not found
-      return -1;
+      return FILENOTOPEN;
    }
 
    disk = openDisk(currentFSMounted, 0);
@@ -568,7 +568,7 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
                break;
             }
             else {
-               return -1; //read too far error
+               return OVERFLOW; //read too far error
             }
          }
          else {/* Not the last block */
@@ -588,7 +588,7 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
                break;
             }
             else {
-               return -1; //read too far error
+               return OVERFLOW; //read too far error
             }
             //final block
          }
@@ -616,7 +616,7 @@ int tfs_seek(fileDescriptor FD, int offset) {
    time_t axess;
 
    if(!fsIsMounted) {
-      return -1;//no fs mounted
+      return NOFSMOUNTED;//no fs mounted
    }
 
    currFileInfo = resourceTable;
@@ -634,7 +634,7 @@ int tfs_seek(fileDescriptor FD, int offset) {
       currFileInfo = currFileInfo->next;
    }
 
-   return -1;//no FD was found
+   return FILENOTOPEN;//no FD was found
 }
 
 time_t tfs_readFileInfo(fileDescriptor FD) {
@@ -656,7 +656,7 @@ time_t tfs_readFileInfo(fileDescriptor FD) {
    }
 
    //no file found error
-   return -1;
+   return FILENOTOPEN;
 }
 
 int tfs_makeRO(char *name) {
@@ -722,7 +722,7 @@ int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
    time_t axecess;
 
    if(!fsIsMounted) {
-      return -1;//no fs mounted
+      return NOFSMOUNTED;//no fs mounted
    }
 
    currFileInfo = resourceTable;
@@ -738,7 +738,7 @@ int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
 
    if(currFileInfo == NULL) {
       //file not found
-      return -1;
+      return FILENOTOPEN;
    }
 
    disk = openDisk(currentFSMounted, 0);
@@ -768,7 +768,7 @@ int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
                break;
             }
             else {
-               return -1; //read too far error
+               return OVERFLOW; //read too far error
             }
          }
          else {/* Not the last block */
@@ -788,7 +788,7 @@ int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
                break;
             }
             else {
-               return -1; //read too far error
+               return OVERFLOW; //read too far error
             }
             //final block
          }
