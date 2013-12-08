@@ -1,5 +1,4 @@
 #include "libTinyFS.h"
-#include "libDisk.c"
 #include "TinyFS_errno.h"
 
 fileinfo *resourceTable = NULL;
