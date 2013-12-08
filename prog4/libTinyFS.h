@@ -15,12 +15,17 @@
 /* for SYS_ERR, first parameter is system call, second is string name of system call */
 #define SYS_ERR(eno, sys_call) { if(eno < 0) { perror(sys_call); exit(EXIT_FAILURE); } }
 typedef int fileDescriptor;
-typedef struct f{
+
+typedef struct fileinfo fileinfo;
+
+struct fileinfo {
    fileDescriptor fd;
    int fp;/* File pointer */
    char filename[8];
-   struct f *next;
-} fileinfo;
+   uint8_t *buffer;/* can be either BLOCKSIZE - sizeof(indoe) OR BLOCKSIZE - 4 */
+   uint8_t startBlock;
+   fileinfo *next;
+};
 
 #pragma pack(push)
 #pragma pack(1)
@@ -58,15 +63,9 @@ typedef struct {
 } inode;
 #pragma pack(pop)
 
-typedef struct resource_table resource_table;
-
-struct resource_table {
-   fileDescriptor fd;
-   uint8_t *buffer;/* can be either BLOCKSIZE - sizeof(indoe) OR BLOCKSIZE - 4 */
-   resource_table *next;
-};
 
 fileDescriptor tfs_openFile(char *name);
+int shiftShit(uint8_t *bitVectorByte, int *superIndex);
 int tfs_mkfs(char *filename, int nBytes);
 int tfs_mount(char *filename);
 int tfs_unmount(void);

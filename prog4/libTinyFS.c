@@ -1,11 +1,11 @@
 #include "libTinyFS.h"
 #include "libDisk.c"
 
-resource_table *fileTable;
-fileinfo *files;
+fileinfo *resourceTable = NULL;
 
-fileDescriptor globalFP = 0;
+fileDescriptor globalFD = 0;
 int fsIsMounted = 0;
+char *currentFSMounted;
 
 int tfs_mkfs(char *filename, int nBytes) {
    int disk, c, offset, numShifts = 0;;
@@ -96,15 +96,32 @@ int tfs_mount(char *filename) {
       blockNo++;
    }
    fsIsMounted = 1;
+   currentFSMounted = (char *)malloc(strlen(filename));
+   strcpy(currentFSMounted, filename);
    return 0;
 }
 
 int tfs_unmount() {
 
 
-
+   free(currentFSMounted);
    fsIsMounted = 0;
    return 0;
+}
+
+int shiftShit(uint8_t *bitVectorByte, int *superIndex) {
+   *bitVectorByte = *bitVectorByte << 1;
+   if(*bitVectorByte == 0) {
+      /* Need to go to the next byte to find a block */
+      *bitVectorByte++;
+      *superIndex++;
+      /* No more blocks free */
+      if(*bitVectorByte == 0) {
+         return -10; /* went through all the bits */
+      }
+   }
+
+   return 1;
 }
 
 //read superblock and find free space for the file
@@ -113,63 +130,63 @@ int tfs_unmount() {
 //put that into entry in table thang
 fileDescriptor tfs_openFile(char *name) {
    time_t t;
+   int h;
    inode i;
    int disk;
+   uint8_t find;
    uint8_t super[BLOCKSIZE];
    uint8_t inodeReader[BLOCKSIZE];
    uint8_t addr, bitVectorByte, grandsonOfNasty = 0/* To get the real address of the block */;
-   globalFP++;
-   char finder = 128, addressPlacer;
+   globalFD++;
+   unsigned char finder = 128, addressPlacer;
 
    /* open disk */
-   disk = openDisk(name, 0);
+   disk = openDisk(currentFSMounted, 0);
 
    /* grab superblock */
    readBlock(disk, 0, &super);
 
-   int superIndex = 4;/* Beginning of the free block list vector index */
+   int superIndex = 4, a;/* Beginning of the free block list vector index */
 
    bitVectorByte = super[superIndex];//first byte of the free block list bit vector
 
    /* grab byte offset, index into super array */
    addr = super[2];
 
-   /* Go through file table shit to create file entry or see if entry exists */
-   fileinfo *f = files;
-   if(files == NULL) {
-      f = (fileinfo *)malloc(sizeof(fileinfo));
-      f->fd = globalFP;
-      fp = 0; /* Beginning of the file */
-      strcpy(f->filename, i.fileName)
-   }
-   else {
-      if(strcmp(f->filename, name)) {//just checks the head noce
-         return -1;//file already exists error
-      }
-      while(f=f->next) {//to goto the end of the list
-         //check to see if this file entry exists already
-         if(strcmp(f->filename, name)) {//just checks the head noce
-            return -1;//file already exists error
-         }
-      }
-      f->next = (fileinfo *)malloc(sizeof(fileinfo));
-      f->fd = globalFP;
-      fp = 0; /* Beginning of the file */
-      strcpy(f->filename, i.fileName)
-   }
-   resource_table *t = filetable;
-   if(t == NULL) {/* First entry into the table */
-      t = (resource_table *)malloc(sizeof(resource_table));
-      t->fd = globalFP;
-      t->buffer = (char *)malloc(BLOCKSIZE - sizeof(inode));
-   }
-   else {
-      while(t=t->next);
-      t->next = (resource_table *)malloc(sizeof(resource_table));
-      t->fd = globalFP;
-      t->buffer = (char *)malloc(BLOCKSIZE - sizeof(inode));
-   }
+   /* pointer to current node in resource table */
+   fileinfo *currFileInfo;
 
+   /* Go through file table shit to create file entry or see if entry exists */
+   if(resourceTable == NULL) { //List is empty
+      resourceTable = malloc(sizeof(fileinfo));
+      resourceTable->fd = globalFD;
+      resourceTable->fp = 0;
+      strcpy(resourceTable->filename, name);
+      resourceTable->buffer = (uint8_t *)malloc(BLOCKSIZE - sizeof(inode));
+      resourceTable->next = 0;
+   } else {
+      currFileInfo = resourceTable;
+      while(currFileInfo->next != 0) {
+         if(!strcmp(currFileInfo->filename, name)) {
+            return -1; //file already open error
+         }
+         /* iterating through list */
+         currFileInfo = currFileInfo->next;
+      }
+
+      currFileInfo->next = malloc(sizeof(fileinfo));
+      currFileInfo = currFileInfo->next;
+
+      if(currFileInfo == 0) {
+         return -1; //out of memory error
+      }
+
+      currFileInfo->fd = globalFD;
+      currFileInfo->fp = 0;
+      strcpy(currFileInfo->filename, name);
+      currFileInfo->buffer = (uint8_t *)malloc(BLOCKSIZE - sizeof(inode));
+      currFileInfo->next = 0;
+   }
 
    /* fill out inodes */
    time(&t);
@@ -187,26 +204,24 @@ fileDescriptor tfs_openFile(char *name) {
       /* Found a used block */
       if(addressPlacer == 0) { 
          readBlock(disk, grandsonOfNasty, &inodeReader);
-         if(inodeReader[2] != 2) { /* check to see if it is a valid inode block */
-            continue;
+         if(inodeReader[0] != 2) { /* check to see if it is a valid inode block */
+            if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
+               break;  
+             }
+            else {
+               continue;
+            }
          }
          char fileNameChecker[8];
-         strncpy(fileNameChecker, inodeReader[sizeof(formatted_block)], 8); /* Copy the filename so we can check it */
-         if(strcmp(fineNameChecker, name)) { /* name matches */
-            memcpy(inodeReader[21], t, 8); /* Update access time if filenames match */
-            writeblock(disk, grandsonOfNasty, &inodeReader);
-            return globalFP;
+         memcpy(&fileNameChecker, &inodeReader[sizeof(formatted_block)], 8); /* Copy the filename so we can check it */
+         if(!strcmp(fileNameChecker, name)) {
+            memcpy(&inodeReader[21], &t, 8); /* Update access time if filenames match */
+            writeBlock(disk, grandsonOfNasty, &inodeReader);
+            return globalFD;
          }
       }
-      bitVectorByte = bitVectorByte << 1;
-      if(bitVectorByte == 0) {
-         /* Need to go to the next byte to find a block */
-         bitVectorByte++;
-         superIndex++;
-         /* No more blocks free */
-         if(bitVectorByte == 0) {
-            break; /* went through all the bits */
-         }
+      if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
+         break;
       }
    }  
 
@@ -231,7 +246,8 @@ fileDescriptor tfs_openFile(char *name) {
             gson++;
          }
          finder = finder >> 1;/* Place the zero in */
-         gson++
+         gson++;
+
          while(gson < 8) {
             finder = finder >> 1;
             finder = finder | 128;
@@ -239,51 +255,54 @@ fileDescriptor tfs_openFile(char *name) {
          }
          /* End zeroing that specific bit out */
          super[superIndex] = super[superIndex] & finder;
+         currFileInfo->startBlock = grandsonOfNasty;
          break;
       }
-      bitVectorByte = bitVectorByte << 1;
-      if(bitVectorByte == 0) {
-         /* Need to go to the next byte to find a block */
-         bitVectorByte++;
-         superIndex++;
-         /* No more blocks free */
-         if(bitVectorByte == 0) {
-            return -1; /* Disk full */
-         }
+      if((a = shiftShit(&bitVectorByte, &superIndex)) < 0) {
+         return -1;//disk full
       }
    }
    i.finalByte = 0;
    strncpy(i.fileName, name, 8);
    i.size = 0;
    i.readWrite = 1;
+   for(h = 0; h < BLOCKSIZE; h++) {
+      inodeReader[h] = 0;
+   }
+   memcpy(inodeReader, &i, sizeof(inode));
    //write inode block to it's proper place
-   writeBlock(disk, i.blockAddress, &i)
+   writeBlock(disk, i.blockAddress, &inodeReader);
    //make inode block address entry in super block
-   uint8_t find = super[2];
-   find + i.blockAddress < 252 ? super[find + i.blockAddress] = i.blockAddress : return -1; //disk is full for -1 case
-   /*while(1) {
-      if(super[find] == '\0') {
-         super[find] = i.blockAddress;
-         break;
-      }
-      find++;
-      //case for if we go into another block for inode entries
-      if(find >= 252) {
-         return -1; //disk is full b/c no more inode entries can be put in
-      }
-   }*/
+   find = super[2];
+   if(find + i.blockAddress < 252) {
+      super[find + i.blockAddress] = i.blockAddress;
+   } else {
+      //disk is full for -1 case
+      return -1;
+   }
 
    //writeblock for the updated super block 
-   writeBlock(disk, super, 0);
+   writeBlock(disk, 0, &super);
 
 
    //filetable entry
 
-   return globalFP;
+   return globalFD;
 }
 
 //go through the file extent blocks till the last one and set the next block to 0
 int tfs_closeFile(fileDescriptor FD) {
+   fileinfo *currFileInfo;
+
+   currFileInfo = resourceTable;
+
+   while(currFileInfo->next != 0) {
+      if(currFileInfo->fd == FD) {
+
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
    return 0;
 }
 
