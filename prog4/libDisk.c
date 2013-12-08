@@ -1,7 +1,7 @@
 
 int diskSize = 0;
 int openDisk(char *filename, int nBytes) {
-   int disk, numBytes = (nBytes/BLOCKSIZE) * BLOCKSIZE;//to make sure bytes is a multiple of the blocksize
+   int disk;//to make sure bytes is a multiple of the blocksize
    struct stat checker;
 
    if(lstat(filename, &checker) < 0) {/* Create file if it does not exist */

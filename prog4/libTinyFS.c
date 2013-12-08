@@ -227,7 +227,7 @@ fileDescriptor tfs_openFile(char *name) {
          char fileNameChecker[8];
          memcpy(&fileNameChecker, &inodeReader[sizeof(formatted_block)], 8); /* Copy the filename so we can check it */
          if(!strcmp(fileNameChecker, name)) {
-            memcpy(&inodeReader[21], &t, 8); /* Update access time if filenames match */
+            memcpy(&inodeReader[22], &t, 8); /* Update access time if filenames match */
             writeBlock(disk, grandsonOfNasty, &inodeReader);
             return globalFD;
          }
@@ -336,8 +336,6 @@ int tfs_closeFile(fileDescriptor FD) {
 
 //make the indoe block by making header shit and memcpying at loc after shit
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
-   int blocks = size / BLOCKSIZE, leftover = size % BLOCKSIZE;
-   unsigned int k;
    int currDisk, offset = sizeof(inode), superIndex = 4, a;
    uint8_t blockBuff[BLOCKSIZE], currBlockToRead, super[BLOCKSIZE],
             grandsonOfNasty = 0, bitVectorByte;
@@ -345,6 +343,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    fileinfo *currFileInfo;
    currFileInfo = resourceTable;
    unsigned char addressPlacer, finder = 128;
+   time_t fileFucker;
 
    if(!fsIsMounted) {
       return -1; //no fs mounted
@@ -355,9 +354,14 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    bitVectorByte = super[superIndex];
 
 
+   time(&fileFucker);
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
          currBlockToRead = currFileInfo->startBlock;
+         readBlock(currDisk, currBlockToRead, &blockBuff);
+         blockBuff[22] = fileFucker;
+         blockBuff[30] = fileFucker;
+         writeBlock(currDisk, currBlockToRead, &blockBuff);
          currFileInfo->fp = 0;
          if(size > blockBuff[12]) {//if the size passed in is larger than the old size of the file
             blockBuff[12] = sizeConvert;/* Update the size of the file */
@@ -386,7 +390,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
                memcpy(&blockBuff[offset], buffer, BLOCKSIZE-offset);
                size = size - (BLOCKSIZE - offset); /* Decrement size by the amount we wrote */
                offset = sizeof(formatted_block);
-               int b = 0;
                buffer = buffer + (BLOCKSIZE - offset);//move the buffer over after writing
                /*for(k = (BLOCKSIZE - offset); k < strlen(buffer); k++) {
                   buffer[b] = buffer[k];
@@ -513,6 +516,7 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
    unsigned int offset = 0;
    uint8_t blockToRead;
    char buffer[BLOCKSIZE];
+   time_t axecess;
 
    if(!fsIsMounted) {
       return -1;//no fs mounted
@@ -537,6 +541,11 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
    disk = openDisk(currentFSMounted, 0);
 
    blockToRead = currFileInfo->startBlock;
+   time(&axecess);
+   readBlock(disk, blockToRead, &buffer);
+   buffer[22] = axecess;
+   writeBlock(disk, blockToRead, &buffer);
+   
 
    offset = currFileInfo->fp;
 
@@ -598,16 +607,24 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
 
 int tfs_seek(fileDescriptor FD, int offset) {
    fileinfo *currFileInfo;
+   uint8_t doofer[BLOCKSIZE];
+   int disk;
+   time_t axess;
 
    if(!fsIsMounted) {
       return -1;//no fs mounted
    }
 
    currFileInfo = resourceTable;
+   disk = openDisk(currentFSMounted, 0);
+   time(&axess);
 
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
          currFileInfo->fp = offset;
+         readBlock(disk, currFileInfo->startBlock, &doofer);
+         doofer[22] = axess;
+         writeBlock(disk, currFileInfo->startBlock, &doofer);
          return 0;
       }
       currFileInfo = currFileInfo->next;
@@ -616,3 +633,24 @@ int tfs_seek(fileDescriptor FD, int offset) {
    return -1;//no FD was found
 }
 
+time_t tfs_readFileInfo(fileDescriptor FD) {
+   fileinfo *currFileInfo;
+   int disk;
+   uint8_t buffer[BLOCKSIZE];
+   time_t theTime;
+
+   currFileInfo = resourceTable;
+   disk = openDisk(currentFSMounted, 0);
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         readBlock(disk, currFileInfo->startBlock, &buffer);
+         memcpy(&theTime, &buffer[14], 8);
+         return theTime;
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   //no file found error
+   return -1;
+}
