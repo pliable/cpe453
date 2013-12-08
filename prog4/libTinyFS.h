@@ -7,15 +7,12 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "tinyFS.h"
 
 #define MAGIC 0x45
 #define RWBYTE (sizeof(inode) - 1)
-#define DEFAULT_DISK_NAME "tinyFSDisk"
-#define DEFAULT_DISK_SIZE 10240
-#define BLOCKSIZE 256
 /* for SYS_ERR, first parameter is system call, second is string name of system call */
 #define SYS_ERR(eno, sys_call) { if(eno < 0) { perror(sys_call); exit(EXIT_FAILURE); } }
-typedef int fileDescriptor;
 
 typedef struct fileinfo fileinfo;
 

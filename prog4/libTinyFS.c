@@ -396,11 +396,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
                size = size - (BLOCKSIZE - offset); /* Decrement size by the amount we wrote */
                buffer = buffer + (BLOCKSIZE - offset);//move the buffer over after writing
                offset = sizeof(formatted_block);
-               /*for(k = (BLOCKSIZE - offset); k < strlen(buffer); k++) {
-                  buffer[b] = buffer[k];
-                  b++;
-               }*/
-               //buffer[b] = '\0';
                /* Find free block in the bit vector */
                while(1) {
                   addressPlacer = bitVectorByte & finder;
@@ -758,6 +753,7 @@ int tfs_writeByte(fileDescriptor FD, uint8_t data) {
       readBlock(disk, blockToRead, buffer);
       buffer[sizeof(inode)] = data;
       currFileInfo->fp++;
+      writeBlock(disk, blockToRead, &buffer);
       return 0;
    }
    while(offset > 0) {
@@ -785,7 +781,7 @@ int tfs_writeByte(fileDescriptor FD, uint8_t data) {
       else if(buffer[0] == 3) {/* extent block */
          if(buffer[2] == 0) { /* last block */
             if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
-               buffer[offset+sizeof(inode)] = data;
+               buffer[offset+sizeof(formatted_block)] = data;
                break;
             }
             else {
@@ -795,7 +791,7 @@ int tfs_writeByte(fileDescriptor FD, uint8_t data) {
          }
          else {/* Not the last block */
             if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
-               buffer[offset+sizeof(inode)] = data;
+               buffer[offset+sizeof(formatted_block)] = data;
                break;
             }
             else {
@@ -805,6 +801,7 @@ int tfs_writeByte(fileDescriptor FD, uint8_t data) {
       }
       blockToRead = buffer[2];//grab the next block
    }
+   writeBlock(disk, blockToRead, &buffer);
 
    currFileInfo->fp++;
    return 0;
