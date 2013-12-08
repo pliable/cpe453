@@ -359,6 +359,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       if(currFileInfo->fd == FD) {
          currBlockToRead = currFileInfo->startBlock;
          readBlock(currDisk, currBlockToRead, &blockBuff);
+         /* Check for readonly */
+         if(blockBuff[RWBYTE] == 0) {
+            return -1;//file is read only error
+         }
          blockBuff[22] = fileFucker;
          blockBuff[30] = fileFucker;
          writeBlock(currDisk, currBlockToRead, &blockBuff);
@@ -653,4 +657,154 @@ time_t tfs_readFileInfo(fileDescriptor FD) {
 
    //no file found error
    return -1;
+}
+
+int tfs_makeRO(char *name) {
+   fileInfo currFileInfo;
+   uint8_t doofer[BLOCKSIZE];
+   int disk;
+   time_t axess;
+
+   currFileInfo = resourceTable;
+   disk = openDisk(currentFSMounted, 0);
+   time(&axess);
+
+   while(currFileInfo != NULL) {
+      if(!strcmp(currFileInfo->filename, name)) {
+         //fuond the file
+         readBlock(disk, currFileInfo->startBlock, &doofer);
+         doofer[RWBYTE] = 0;//set file to readOnly
+         doofer[22] = axess;//mod acccess time
+         doofer[30] = axess;//mod modified tame
+         writeBlock(disk, currFileInfo->startBlock, &doofer);
+
+         return 0
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   reutrn 0;
+}
+
+int tfs_makeRW(char *name) {
+   fileInfo currFileInfo;
+   uint8_t doofer[BLOCKSIZE];
+   int disk;
+   time_t axess;
+
+   currFileInfo = resourceTable;
+   disk = openDisk(currentFSMounted, 0);
+   time(&axess);
+
+   while(currFileInfo != NULL) {
+      if(!strcmp(currFileInfo->filename, name)) {
+         //fuond the file
+         readBlock(disk, currFileInfo->startBlock, &doofer);
+         doofer[RWBYTE] = 1;//set file to readOnly
+         doofer[22] = axess;//mod acccess time
+         doofer[30] = axess;//mod modified tame
+         writeBlock(disk, currFileInfo->startBlock, &doofer);
+
+         return 0
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   reutrn 0;
+}
+
+int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
+   fileinfo *currFileInfo;
+   int fileptr, disk;
+   unsigned int offset = 0;
+   uint8_t blockToRead;
+   char buffer[BLOCKSIZE];
+   time_t axecess;
+
+   if(!fsIsMounted) {
+      return -1;//no fs mounted
+   }
+
+   currFileInfo = resourceTable;
+
+   while(currFileInfo != NULL) {
+      if(currFileInfo->fd == FD) {
+         //we found our file!
+         fileptr = currFileInfo->fp;
+         break;
+      }
+      currFileInfo = currFileInfo->next;
+   }
+
+   if(currFileInfo == NULL) {
+      //file not found
+      return -1;
+   }
+
+   disk = openDisk(currentFSMounted, 0);
+
+   blockToRead = currFileInfo->startBlock;
+   time(&axecess);
+   readBlock(disk, blockToRead, &buffer);
+   buffer[22] = axecess;//change access tiem
+   buffer[30] = axecess;//change modded time
+   writeBlock(disk, blockToRead, &buffer);
+   
+
+   offset = currFileInfo->fp;
+
+   if(offset == 0) {
+      readBlock(disk, blockToRead, buffer);
+      *extBuffer = buffer[sizeof(inode)];
+      currFileInfo->fp++;
+      return 0;
+   }
+   while(offset > 0) {
+      readBlock(disk, blockToRead, buffer);
+      if(buffer[0] == 2) {/* inode block */
+         if(buffer[2] == 0) { /* last block */
+            if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               buffer[offset+sizeof(inode)] = data;
+               break;
+            }
+            else {
+               return -1; //read too far error
+            }
+         }
+         else {/* Not the last block */
+            if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               buffer[offset+sizeof(inode)] = data;
+               break;
+            }
+            else {
+               offset = offset - (BLOCKSIZE - sizeof(inode));
+            }
+         }
+      }
+      else if(buffer[0] == 3) {/* extent block */
+         if(buffer[2] == 0) { /* last block */
+            if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               buffer[offset+sizeof(inode)] = data;
+               break;
+            }
+            else {
+               return -1; //read too far error
+            }
+            //final block
+         }
+         else {/* Not the last block */
+            if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               buffer[offset+sizeof(inode)] = data;
+               break;
+            }
+            else {
+               offset = offset - (BLOCKSIZE - sizeof(formatted_block));
+            }
+         }
+      }
+      blockToRead = buffer[2];//grab the next block
+   }
+
+   currFileInfo->fp++;
+   return 0;
 }

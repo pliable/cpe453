@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #define MAGIC 0x45
+#define RWBYTE (sizeof(inode) - 1)
 #define DEFAULT_DISK_NAME "tinyFSDisk"
 #define DEFAULT_DISK_SIZE 10240
 #define BLOCKSIZE 256
@@ -76,3 +77,7 @@ int tfs_seek(fileDescriptor FD, int offset);
 int openDisk(char *filename, int nBytes);
 int readBlock(int disk, int bNum, void *block);
 int writeBlock(int disk, int bNum, void *block);
+int tfs_makeRO(char *name);
+int tfs_makeRW(char *name);
+int tfs_writeByte(fildescriptor FD, uint8_t data);
+time_t tfs_readFileInfo(fileDescriptor FD);
