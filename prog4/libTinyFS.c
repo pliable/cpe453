@@ -1,5 +1,6 @@
 #include "libTinyFS.h"
 #include "libDisk.c"
+#include "TinyFS_errno.h"
 
 fileinfo *resourceTable = NULL;
 
@@ -308,7 +309,7 @@ int tfs_closeFile(fileDescriptor FD) {
    fileinfo *prevFileInfo;
 
    if(!fsIsMounted) {
-      return NOFSMOUTNED;//no fs mounted error
+      return NOFSMOUNTED;//no fs mounted error
    }
 
    currFileInfo = resourceTable;
@@ -660,7 +661,7 @@ time_t tfs_readFileInfo(fileDescriptor FD) {
 }
 
 int tfs_makeRO(char *name) {
-   fileInfo currFileInfo;
+   fileinfo *currFileInfo;
    uint8_t doofer[BLOCKSIZE];
    int disk;
    time_t axess;
@@ -678,16 +679,16 @@ int tfs_makeRO(char *name) {
          doofer[30] = axess;//mod modified tame
          writeBlock(disk, currFileInfo->startBlock, &doofer);
 
-         return 0
+         return 0;
       }
       currFileInfo = currFileInfo->next;
    }
 
-   reutrn 0;
+   return 0;
 }
 
 int tfs_makeRW(char *name) {
-   fileInfo currFileInfo;
+   fileinfo *currFileInfo;
    uint8_t doofer[BLOCKSIZE];
    int disk;
    time_t axess;
@@ -705,15 +706,15 @@ int tfs_makeRW(char *name) {
          doofer[30] = axess;//mod modified tame
          writeBlock(disk, currFileInfo->startBlock, &doofer);
 
-         return 0
+         return 0;
       }
       currFileInfo = currFileInfo->next;
    }
 
-   reutrn 0;
+   return 0;
 }
 
-int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
+int tfs_writeByte(fileDescriptor FD, uint8_t data) {
    fileinfo *currFileInfo;
    int fileptr, disk;
    unsigned int offset = 0;
@@ -755,7 +756,7 @@ int tfs_wrtiteByte(filedescriptor FD, uint8_t data) {
 
    if(offset == 0) {
       readBlock(disk, blockToRead, buffer);
-      *extBuffer = buffer[sizeof(inode)];
+      buffer[sizeof(inode)] = data;
       currFileInfo->fp++;
       return 0;
    }

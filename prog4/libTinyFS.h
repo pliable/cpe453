@@ -79,5 +79,5 @@ int readBlock(int disk, int bNum, void *block);
 int writeBlock(int disk, int bNum, void *block);
 int tfs_makeRO(char *name);
 int tfs_makeRW(char *name);
-int tfs_writeByte(fildescriptor FD, uint8_t data);
+int tfs_writeByte(fileDescriptor FD, uint8_t data);
 time_t tfs_readFileInfo(fileDescriptor FD);
