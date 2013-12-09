@@ -343,7 +343,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    fileinfo *currFileInfo;
    currFileInfo = resourceTable;
    unsigned char addressPlacer, finder = 128;
-   time_t fileFucker;
+   time_t theTime;
 
    if(!fsIsMounted) {
       return NOFSMOUNTED; //no fs mounted
@@ -354,7 +354,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    bitVectorByte = super[superIndex];
 
 
-   time(&fileFucker);
+   time(&theTime);
    while(currFileInfo != NULL) {
       if(currFileInfo->fd == FD) {
          currBlockToRead = currFileInfo->startBlock;
@@ -363,8 +363,8 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          if(blockBuff[RWBYTE] == 0) {
             return READONLYERR;//file is read only error
          }
-         blockBuff[22] = fileFucker;
-         blockBuff[30] = fileFucker;
+         blockBuff[22] = theTime;
+         blockBuff[30] = theTime;
          writeBlock(currDisk, currBlockToRead, &blockBuff);
          currFileInfo->fp = 0;
          if(size > blockBuff[12]) {//if the size passed in is larger than the old size of the file
@@ -473,9 +473,10 @@ int tfs_deleteFile(fileDescriptor FD) {
          while(1) {
             readBlock(disk, currBlock, &boofer);
             f.blockAddress = boofer[2];
-            memcpy(&boofer, &blockDestroyer, BLOCKSIZE);
-            memcpy(&boofer, &f, sizeof(formatted_block));
-            writeBlock(disk, currBlock, &boofer);
+            //memcpy(&boofer, &blockDestroyer, BLOCKSIZE);
+            memcpy(&blockDestroyer, &f, sizeof(formatted_block));
+
+            writeBlock(disk, currBlock, &blockDestroyer);
 
             /* update superblock */
             whichByte = currBlock / 8;
@@ -550,6 +551,9 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
 
    if(offset == 0) {
       readBlock(disk, blockToRead, buffer);
+      if(buffer[sizeof(inode)] == 0) {
+         return BADREAD;
+      }
       *extBuffer = buffer[sizeof(inode)];
       currFileInfo->fp++;
       return 0;
@@ -559,6 +563,9 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
       if(buffer[0] == 2) {/* inode block */
          if(buffer[2] == 0) { /* last block */
             if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               if(buffer[sizeof(inode)] == 0) {
+                  return BADREAD;
+               }
                *extBuffer = buffer[offset+sizeof(inode)];
                break;
             }
@@ -568,6 +575,9 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
          }
          else {/* Not the last block */
             if(offset < (BLOCKSIZE - sizeof(inode))){/* no overflow */
+               if(buffer[sizeof(inode)] == 0) {
+                  return BADREAD;
+               }
                *extBuffer = buffer[offset+sizeof(inode)];
                break;
             }
@@ -578,7 +588,11 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
       }
       else if(buffer[0] == 3) {/* extent block */
          if(buffer[2] == 0) { /* last block */
+            printf("%d\n", offset);
             if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               if(buffer[sizeof(formatted_block)] == 0) {
+                  return BADREAD;
+               }
                *extBuffer = buffer[offset+sizeof(sizeof(formatted_block))];
                break;
             }
@@ -589,6 +603,9 @@ int tfs_readByte(fileDescriptor FD, char *extBuffer) {
          }
          else {/* Not the last block */
             if(offset < (BLOCKSIZE - sizeof(formatted_block))){/* no overflow */
+               if(buffer[sizeof(formatted_block)] == 0) {
+                  return BADREAD;
+               }
                *extBuffer = buffer[offset+sizeof(formatted_block)];
                break;
             }

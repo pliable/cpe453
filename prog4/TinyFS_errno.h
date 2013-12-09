@@ -8,3 +8,4 @@
 #define READONLYERR -9
 #define OVERFLOW -10
 #define NOMOREBITS -11
+#define BADREAD -12
