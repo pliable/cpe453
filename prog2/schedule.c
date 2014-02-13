@@ -3,13 +3,17 @@
 
 int currentRunningProcIndex = 0;
 int numberProcsToRun = 0;
+int nasty = 0;
 long int quantum;
-pid_t pids[MAX_PROCS_AND_ARGS]; //should be an array for all the pids being run
+pid_t pids[MAX_PROCS_AND_ARGS]; /*should be an array for all the pids being run*/
 char *progs[MAX_PROCS][MAX_ARGS];
+struct itimerval val;
 
 int main(int argc, char *argv[])
 {
    int status, s;
+   int numSecs;
+   int j;
    /* an array of an array of pointers, for CLI args */
 
    if(argc > ABS_MAX) {
@@ -23,34 +27,57 @@ int main(int argc, char *argv[])
    }
 
    zero_out(progs);
-   /* parse CLI */
    parse_cl(progs, argc, argv);
-   //testPrint();
 
    for(s = 0; s < MAX_PROCS_AND_ARGS; s++) {
       pids[s] = 0;
    }
 
-   //testPrint();
+   status = installHandler(SIGALRM, timesUp);
    for(s = 0; s < numberProcsToRun; s++) {
       forkChild(s);
    }
 
    for(s = 0; s < numberProcsToRun; s++) {
-      //untraced?
-      printf("current pid: %d\n", pids[s]);
       waitpid(pids[s], &status, WNOHANG);
    }
 
-   //status = installHandler(SIGCHLD, handleChildEndingEarly);
-   status = installHandler(SIGALRM, timesUp);
-   scheduleProcs();
+   while(numberProcsToRun > 0) {
+      /*have to convert to seconds if longer than that many*/
+      numSecs = quantum / MICRO_TO_MILLI;
+
+      val.it_interval.tv_sec = 0;
+      val.it_interval.tv_usec = 0;
+      val.it_value.tv_sec = numSecs;
+      val.it_value.tv_usec = (quantum%MICRO_TO_MILLI)*MICRO_TO_MILLI;
+      j = setitimer(ITIMER_REAL, &val, NULL);
+      kill(pids[currentRunningProcIndex], SIGCONT);
+      waitpid(pids[currentRunningProcIndex], &status, WUNTRACED);
+
+      if(nasty == 1) {/*TIMER WENT OFF*/
+         currentRunningProcIndex++;
+         if(currentRunningProcIndex > numberProcsToRun - 1) {
+            currentRunningProcIndex = 0;
+         }
+         nasty = 0;
+      } else if (nasty == 0) {/*CHILD COMMITTED SUICIDE BEFORE IT'S TIME*/
+         /*remove current process from the queue and bump all other procs up*/
+         for(j = currentRunningProcIndex; j < numberProcsToRun - 1; j++) {
+            pids[j] = pids[j+1];/*bump all the pids up*/
+         }
+         bumpProgs();
+         /*run the next process*/
+         numberProcsToRun--;
+         if(currentRunningProcIndex > numberProcsToRun - 1) {
+            currentRunningProcIndex = 0;
+         }
+      }
+   }
+   
 
    while(numberProcsToRun > 0) {
-      pause();//put this in a loop until all processes finish
+      pause();/*put this in a loop until all processes finish*/
    }
-
-   for(s = 0; s < 10; s++) printf("pid: %d", pids[s]);
 
    wait(&status);
 
@@ -98,7 +125,7 @@ void zero_out(char *progs[MAX_PROCS][MAX_ARGS]) {
 }
 
 void setupTimer(long numMS) {
-   //have to convert to seconds if longer than that many
+   /*have to convert to seconds if longer than that many*/
    struct itimerval val;
    int numSecs = numMS / MICRO_TO_MILLI;
 
@@ -123,19 +150,6 @@ int installHandler(int sig, void (*handler)(int sig)) {
    return 0;
 }
 
-void scheduleProcs() {
-   int status;
-
-   printf("in scheduleproc\n");
-
-   //resume the paused process
-   printf("Your quantum be dis: %d\n", quantum);
-   setupTimer(quantum);//move this to before we exec the process
-   kill(pids[currentRunningProcIndex], SIGCONT);
-   waitpid(pids[currentRunningProcIndex], &status, WUNTRACED);
-   handleChildEndingEarly(status);
-}
-
 void timesUp(int sigalrm) {
    int status;
    sigset_t old, new;
@@ -145,52 +159,18 @@ void timesUp(int sigalrm) {
    sigaddset(&new, SIGCHLD);
    sigprocmask(SIG_BLOCK, &new, &old);
 
-   printf("Quantum Expired\n");
    kill(pids[currentRunningProcIndex], SIGSTOP);
    waitpid(pids[currentRunningProcIndex], &status, WUNTRACED);
-   //increment current process pointer
-   currentRunningProcIndex++;
-   printf("current running proc index times up: %d\n", currentRunningProcIndex);
-   //testPrint();
-   if(currentRunningProcIndex > numberProcsToRun - 1) {
-      currentRunningProcIndex = 0;
-   }
-   //resume/exec the next process
-   //kill(pids[currentRunningProcIndex], SIGCONT);
+
+   val.it_interval.tv_sec = 0;
+   val.it_interval.tv_usec = 0;
+   val.it_value.tv_sec = 0;
+   val.it_value.tv_usec = 0;
+   nasty = 1;
+
+   sigalrm = ITS_OVER_NINE_THOUSAND;
+
    sigprocmask(SIG_UNBLOCK, &new, &old);
-   scheduleProcs();
-}
-
-void handleChildEndingEarly(int sigchld) {
-   //block the SIGALRM for this run since we already ended
-   int j;
-   /*
-   sigset_t old, new;
-
-   sigemptyset(&old);
-   sigemptyset(&new);
-   sigaddset(&new, SIGALRM);
-   sigprocmask(SIG_BLOCK, &new, &old);
-   */
-
-   printf("Child Ended Early\n");
-   //remove current process from the queue and bump all other procs up
-   for(j = currentRunningProcIndex; j < numberProcsToRun - 1; j++) {
-      pids[j] = pids[j+1];//bump all the pids up
-   }
-   bumpProgs();
-   testPrint();
-   //run the next process
-   numberProcsToRun--;
-   if(numberProcsToRun == 0) raise(SIGINT);
-   if(currentRunningProcIndex > numberProcsToRun - 1) {
-      currentRunningProcIndex = 0;
-   }
-   printf("current running process handle child: %d\n", currentRunningProcIndex);
-   /*
-   sigprocmask(SIG_UNBLOCK, &new, &old);
-   */
-   scheduleProcs();
 }
 
 void bumpProgs() {
@@ -205,22 +185,19 @@ void bumpProgs() {
 
 void forkChild(int s) {
    int status;
-   //pid_t pid;
-   printf("in forkChild()\n");
 
    pids[s] = fork();
-   if(pids[s] < 0) {//change this to not just replace 0
+   if(pids[s] < 0) {/*change this to not just replace 0*/
       fprintf(stderr, "fork failed\n");
       exit(EXIT_FAILURE);
    }
    else {
       if(pids[s] == 0) {
-         //execvp the command
+         /*execvp the command*/
          raise(SIGSTOP);
          execvp(progs[s][0], progs[s]);
       }
       else {
-         printf("pid: %d\n", pids[s]);
          waitpid(pids[s], &status, WUNTRACED);
       }
    }
